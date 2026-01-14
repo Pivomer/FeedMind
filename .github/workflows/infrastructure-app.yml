@@ -30,4 +30,4 @@ jobs:
         az deployment group create \
           --resource-group rg-feed-mind \
           --template-file ./pipelines/bicep/infra/main.bicep \
-          --parameters ./infra/parameters.bicepparam  
+          --parameters ./pipelines/bicep/infra/parameters.bicepparam
