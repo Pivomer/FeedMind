@@ -1,0 +1,14 @@
+name: Build and Deploy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  development:
+    name: Development
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Show info
+      run: |
+        echo "Test build and deploy workflow"
