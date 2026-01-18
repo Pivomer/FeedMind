@@ -1,0 +1,5 @@
+<Solution>
+  <Folder Name="/Hosts/">
+    <Project Path="src\Hosts\FeedMind.API\FeedMind.API.csproj" Type="Classic C#" />
+  </Folder>
+</Solution>

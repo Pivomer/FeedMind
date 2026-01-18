@@ -1,0 +1,36 @@
+name: "Create semantic version"
+description: "Create a unique semantic version. Default value: 1.0.{GITHUB_RUN_NUMBER}.0"
+
+inputs:
+  major-version:
+    description: "Major Version"
+    required: false
+    default: "1"
+  minor-version:
+    description: "Minor Version"
+    required: false
+    default: "0"
+  build-number:
+    description: "Build Number"
+    required: false
+    default: ${GITHUB_RUN_NUMBER}
+  revision:
+    description: "Revision"
+    required: false
+    default: "0"
+
+outputs:
+  semantic_version:
+    description: "Semantic version"
+    value: ${{ steps.set_semantic_version.outputs.semantic_version }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Create semantic version
+      id: set_semantic_version
+      run: |
+        SEMANTIC_VERSION=${{ inputs.major-version }}.${{ inputs.minor-version }}.${{ inputs.build-number }}.${{ inputs.revision }}
+        echo "semantic_version=$SEMANTIC_VERSION" >> $GITHUB_OUTPUT
+        echo "semantic_version=$SEMANTIC_VERSION"
+      shell: bash
