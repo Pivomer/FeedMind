@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/Hosts/">
+    <Project Path="src\Hosts\FeedMind.API\FeedMind.API.csproj" Type="Classic C#" />
+    <Project Path="src\Hosts\FeedMind.Bot\FeedMind.Bot.csproj" Type="Classic C#" />
+    <Project Path="src\Hosts\FeedMind.Jobs\FeedMind.Jobs.csproj" Type="Classic C#" />
+  </Folder>
+  <Folder Name="/Modules/" />
+  <Folder Name="/Modules/Telegram/">
+    <Project Path="src\Modules\Telegram\FeedMind.Modules.Telegram.Contracts\FeedMind.Modules.Telegram.Contracts.csproj" Type="Classic C#" />
+    <Project Path="src\Modules\Telegram\FeedMind.Modules.Telegram\FeedMind.Modules.Telegram.csproj" Type="Classic C#" />
+    <Project Path="src\Modules\Telegram\Modules.Telegram.Database\Modules.Telegram.Database.csproj" Type="Classic C#" />
+    <Project Path="src\Modules\Telegram\Modules.Telegram.Features\Modules.Telegram.Features.csproj" Type="Classic C#" />
+    <Project Path="src\Modules\Telegram\Modules.Telegram.Infrastructure\Modules.Telegram.Infrastructure.csproj" Type="Classic C#" />
+    <Project Path="src\Modules\Telegram\Modules.Telegram.Storage\Modules.Telegram.Storage.csproj" Type="Classic C#" />
+  </Folder>
+</Solution>

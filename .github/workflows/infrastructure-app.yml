@@ -1,9 +1,13 @@
 name: Deploy Infrastructure
 
 on:
-  push:
-    branches: [ "main" ]
   workflow_dispatch:
+    inputs:
+      debug:
+        description: Show debug logs
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   id-token: write
@@ -15,19 +19,26 @@ jobs:
     environment: dev
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
 
-    - name: Azure Login (OIDC)
-      uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5
-      with:
-        client-id: ${{ secrets.AZURE_CLIENT_ID }}
-        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Azure Login (OIDC)
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-    - name: Deploy Bicep
-      run: |
-        az deployment group create \
-          --resource-group rg-feed-mind \
-          --template-file ./pipelines/bicep/infra/main.bicep \
-          --parameters ./pipelines/bicep/infra/parameters.bicepparam
+      - name: Deploy
+        run: |
+          az deployment group create \
+            --resource-group rg-feedmind-dev \
+            --template-file ./pipelines/bicep/infrastructure/main.bicep \
+            --parameters ./pipelines/bicep/infrastructure/parameters.bicepparam \
+            --what-if \
+
+          az deployment group create \
+            --resource-group rg-feedmind-dev \
+            --template-file ./pipelines/bicep/infrastructure/main.bicep \
+            --parameters ./pipelines/bicep/infrastructure/parameters.bicepparam \
+            ${{ inputs.debug && '--debug' || '' }}
