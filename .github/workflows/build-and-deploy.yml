@@ -2,13 +2,59 @@ name: Build and Deploy
 
 on:
   workflow_dispatch:
+    inputs:
+      debug:
+        description: Show debug logs
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  ACR_NAME: crsharedbuilder
+  ACR_REPOSITORY_NAME: "crsharedbuilder.azurecr.io/feedmind-api"
+  CONTAINER_APP_NAME: feedmind-api
+  RESOURCE_GROUP: rg-feedmind-dev
 
 jobs:
   development:
-    name: Development
     runs-on: ubuntu-latest
+    environment: dev
 
     steps:
-    - name: Show info
-      run: |
-        echo "Test build and deploy workflow"
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
+      - name: Build Number
+        id: build_number
+        uses: ./.github/actions/semantic-version
+        with:
+          major-version: "1"
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to Azure Container Registry
+        run: |
+          az acr login --name ${{ env.ACR_NAME }}
+
+      - name: Build Docker image and push to ACR
+        run: |
+          docker build -t ${{ env.ACR_REPOSITORY_NAME }}:${{ steps.build_number.outputs.semantic_version }} .
+          docker push ${{ env.ACR_REPOSITORY_NAME }}:${{ steps.build_number.outputs.semantic_version }}
+
+      - name: Deploy to Azure Container App
+        run: |
+          az containerapp update \
+            --name ca-${{ env.CONTAINER_APP_NAME }}-dev \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --container-name ${{ env.CONTAINER_APP_NAME }} \
+            --image ${{ env.ACR_REPOSITORY_NAME }}:${{ steps.build_number.outputs.semantic_version }} \
+            ${{ inputs.debug && '--debug' || '' }}

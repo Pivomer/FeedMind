@@ -1,5 +1,0 @@
-using 'main.bicep'
-param location = 'westeurope'
-param storageAccountName = 'stazurecicd001'
-param storageSku = 'Standard_LRS'
-param storageKind = 'StorageV2'
