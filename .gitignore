@@ -52,3 +52,20 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# JetBrains Rider/IntelliJ IDEA
+.idea/
+*.sln.DotSettings.user
+
+# NCrunch
+*.ncrunchsolution.user
+*.ncrunchproject.user
+
+# Visual Studio Code
+.vscode/
+
+# ReSharper
+*.DotSettings.user
+
+# Patch files
+*.patch
