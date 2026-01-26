@@ -26,6 +26,12 @@ indent_size = 4
 dotnet_sort_system_directives_first = true
 file_header_template =
 
+[*.yml]
+indent_size = 2
+
+[*.yaml]
+indent_size = 2
+
 # New line preferences
 end_of_line = crlf
 

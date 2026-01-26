@@ -32,13 +32,13 @@ jobs:
       - name: Deploy
         run: |
           az deployment group create \
-            --resource-group rg-feedmind-dev \
+            --resource-group rg-pvm-feedmind-dev \
             --template-file ./pipelines/bicep/infrastructure/main.bicep \
             --parameters ./pipelines/bicep/infrastructure/parameters.bicepparam \
             --what-if \
 
           az deployment group create \
-            --resource-group rg-feedmind-dev \
+            --resource-group rg-pvm-feedmind-dev \
             --template-file ./pipelines/bicep/infrastructure/main.bicep \
             --parameters ./pipelines/bicep/infrastructure/parameters.bicepparam \
             ${{ inputs.debug && '--debug' || '' }}

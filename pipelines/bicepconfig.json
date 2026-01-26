@@ -1,0 +1,10 @@
+{
+    "moduleAliases": {
+        "br": {
+            "private": {
+                "registry": "pvmacr-dqc7dxbwf7fzewf2.azurecr.io",
+                "modulePath": "bicep/modules"
+            }
+        }
+    }
+}

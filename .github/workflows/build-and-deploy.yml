@@ -14,10 +14,10 @@ permissions:
   contents: read
 
 env:
-  ACR_NAME: crsharedbuilder
-  ACR_REPOSITORY_NAME: "crsharedbuilder.azurecr.io/feedmind-api"
+  ACR_NAME: pvmacr
+  ACR_REPOSITORY_NAME: "pvmacr-dqc7dxbwf7fzewf2.azurecr.io/feedmind-api"
   CONTAINER_APP_NAME: feedmind-api
-  RESOURCE_GROUP: rg-feedmind-dev
+  RESOURCE_GROUP: rg-pvm-feedmind-dev
 
 jobs:
   development:
@@ -49,6 +49,18 @@ jobs:
         run: |
           docker build -t ${{ env.ACR_REPOSITORY_NAME }}:${{ steps.build_number.outputs.semantic_version }} .
           docker push ${{ env.ACR_REPOSITORY_NAME }}:${{ steps.build_number.outputs.semantic_version }}
+
+      - name: Copy app settings
+        env:
+          AZURE_STORAGE_ACCOUNT: stpvmdev
+          AZURE_SHARE_NAME: mnt
+          AZCOPY_AUTO_LOGIN_TYPE: AZCLI
+          SETTINGS_SOURCE_FILE_PATH: "./src/Hosts/FeedMind.API/appsettings.dev.json"
+          SETTINGS_DESTINATION_FILE_PATH: "feedmind/appsettings.json"
+        run: |
+          azcopy copy "$SETTINGS_SOURCE_FILE_PATH" \
+            "https://$AZURE_STORAGE_ACCOUNT.file.core.windows.net/$AZURE_SHARE_NAME/$SETTINGS_DESTINATION_FILE_PATH" \
+            --recursive=false
 
       - name: Deploy to Azure Container App
         run: |
