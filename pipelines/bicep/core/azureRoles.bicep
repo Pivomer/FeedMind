@@ -4,4 +4,7 @@ var azureRoles = {
   containers: {
     acrPull: '7f951dda-4ed3-4680-a7ca-43fe172d538d'
   }
+  kv: {
+    keyVaultSecretsUser: '4633458b-17de-408a-b874-0445c86b69e6'
+  }
 }
