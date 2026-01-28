@@ -22,6 +22,10 @@ var tags = {
 
 var environmentVariables = [
   {
+    name: 'AZURE_CLIENT_ID'
+    value: identity.properties.clientId
+  }
+  {
     name: 'APPLICATION_HOME'
     value: '/mnt/${jobName}'
   }

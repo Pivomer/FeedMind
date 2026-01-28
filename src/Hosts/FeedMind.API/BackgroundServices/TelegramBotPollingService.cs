@@ -7,7 +7,6 @@ public sealed class TelegramBotPollingService : BackgroundService
 {
     private readonly ILogger<TelegramBotPollingService> _logger;
     private readonly WorkerStates _states;
-    private readonly Random _random = new();
 
     public TelegramBotPollingService(ILogger<TelegramBotPollingService> logger, WorkerStates states)
     {
@@ -48,12 +47,6 @@ public sealed class TelegramBotPollingService : BackgroundService
 
     private Task DoWorkAsync(CancellationToken token)
     {
-        if (_random.Next(0, 100) < 2)
-            throw new Exception("Random fatal bot polling failure");
-
-        if (_random.Next(0, 100) < 2)
-            throw new TransientException("Random transient bot polling issue");
-
         return Task.CompletedTask;
     }
 }

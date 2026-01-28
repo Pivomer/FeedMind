@@ -1,6 +1,12 @@
-﻿using FeedMind.API.BackgroundServices;
+﻿using Azure.Core;
+using Azure.Identity;
+using Azure.Security.KeyVault.Secrets;
+using FeedMind.API.BackgroundServices;
 using FeedMind.API.BackgroundServices.Health;
+using FeedMind.API.Settings;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Azure;
 
 namespace FeedMind.API;
 
@@ -26,7 +32,10 @@ public static class Program
             throw new ArgumentNullException(nameof(appEnvironment), $"{ApplicationEnvironment} is required");
         }
 
-        var configPath = Path.Combine(appHome, "appsettings.json");
+        var configPath = AppSettings.IsLocal(appEnvironment)
+            ? Path.Combine(appHome, $"appsettings.{appEnvironment}.json")
+            : Path.Combine(appHome, "appsettings.json");
+
 
         Console.WriteLine($"Starting: {AppHome}: {appHome} ConfigDirectory: {configPath} {ApplicationEnvironment}: {appEnvironment}");
 
@@ -37,8 +46,26 @@ public static class Program
             .AddJsonFile(configPath, optional: false, reloadOnChange: false)
             .AddEnvironmentVariables();
 
-        builder.Services.AddSingleton<WorkerStates>();
+        var credentials = new DefaultAzureCredential
+        (
+#if DEBUG
+            new DefaultAzureCredentialOptions
+            {
+                ExcludeVisualStudioCredential = true,
+                ExcludeAzureDeveloperCliCredential = true,
+                ExcludeAzurePowerShellCredential = true,
+                ExcludeWorkloadIdentityCredential = true,
+                ExcludeManagedIdentityCredential = true
+            }
+#endif
+        );
 
+        builder.Services.ConfigureAppSettings();
+        builder.Services.AddAzureClients(credentials);
+
+        builder.Services.AddTelegramModule(builder.Configuration.GetSection(TelegramModuleRegistration.SectionName), appHome);
+
+        builder.Services.AddSingleton<WorkerStates>();
         builder.Services.AddHostedService<TelegramFeedParserJob>();
         builder.Services.AddHostedService<TelegramBotPollingService>();
 
@@ -50,5 +77,28 @@ public static class Program
         app.MapHealthChecks("/health/ready");
 
         await app.RunAsync();
+    }
+
+    private static void ConfigureAppSettings(this IServiceCollection services)
+    {
+        services
+            .AddOptions<AppSettings>()
+            .BindConfiguration(AppSettings.SectionName)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+    }
+
+    private static void AddAzureClients(this IServiceCollection services, TokenCredential credential)
+    {
+        services.AddAzureClients(clientBuilder =>
+        {
+            clientBuilder.UseCredential(credential);
+            clientBuilder.AddClient<SecretClient, SecretClientOptions>((clientOptions, clientCredential, provider) =>
+            {
+                var appSettings = provider.GetRequiredService<IOptions<AppSettings>>().Value;
+
+                return new SecretClient(new Uri(appSettings.KeyVaultUri), clientCredential, clientOptions);
+            });
+        });
     }
 }
