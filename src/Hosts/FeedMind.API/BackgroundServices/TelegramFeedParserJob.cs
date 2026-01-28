@@ -1,5 +1,8 @@
 ﻿using FeedMind.API.BackgroundServices.Health;
 using FeedMind.API.Core.Exceptions;
+using FeedMind.API.Settings;
+using FeedMind.Modules.Telegram;
+using Microsoft.Extensions.Options;
 
 namespace FeedMind.API.BackgroundServices;
 
@@ -7,27 +10,28 @@ public sealed class TelegramFeedParserJob : BackgroundService
 {
     private readonly ILogger<TelegramFeedParserJob> _logger;
     private readonly WorkerStates _states;
-    private readonly Random _random = new();
+    private readonly Job _telegramJob;
+    private readonly TimeSpan _workerDelay;
 
-    public TelegramFeedParserJob(
-        ILogger<TelegramFeedParserJob> logger,
-        WorkerStates states)
+    public TelegramFeedParserJob(ILogger<TelegramFeedParserJob> logger, IOptions<AppSettings> options, WorkerStates states, Job telegramJob)
     {
         _logger = logger;
         _states = states;
+        _telegramJob = telegramJob;
+        _workerDelay = TimeSpan.FromMinutes(options.Value.FeedParserIntervalMin);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("TelegramFeedParserJob started");
-
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                await DoWorkAsync(stoppingToken);
+                await _telegramJob.Run(stoppingToken);
                 _states.FeedParser.IsHealthy = true;
                 _states.FeedParser.Error = null;
+                await Task.Delay(_workerDelay, stoppingToken);
             }
             catch (TransientException ex)
             {
@@ -42,19 +46,6 @@ public sealed class TelegramFeedParserJob : BackgroundService
                 _states.FeedParser.Error = ex.Message;
                 throw;
             }
-
-            await Task.Delay(2000, stoppingToken);
         }
-    }
-
-    private Task DoWorkAsync(CancellationToken token)
-    {
-        if (_random.Next(0, 100) < 2)
-            throw new Exception("Random fatal feed parser failure");
-
-        if (_random.Next(0, 100) < 2)
-            throw new TransientException("Random transient feed parser issue");
-
-        return Task.CompletedTask;
     }
 }

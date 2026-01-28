@@ -4,9 +4,11 @@ EXPOSE 8080
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
-COPY src/Hosts/FeedMind.API/. .
+COPY src/. .
 
-RUN dotnet restore
+RUN dotnet restore "Hosts/FeedMind.API/FeedMind.API.csproj"
+WORKDIR /src/Hosts/FeedMind.API
+RUN dotnet build "FeedMind.API.csproj" -c Release -o /app/build
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release

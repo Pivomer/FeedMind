@@ -24,7 +24,8 @@ tab_width = 4
 [*.cs]
 indent_size = 4
 dotnet_sort_system_directives_first = true
-file_header_template =
+file_header_template = unset
+place_attribute_on_same_line = false
 
 [*.yml]
 indent_size = 2

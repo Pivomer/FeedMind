@@ -18,4 +18,14 @@
         </Content >
     </ItemGroup>
 
+    <ItemGroup>
+        <PackageReference Include="Azure.Identity" Version="1.17.1" />
+        <PackageReference Include="Azure.Security.KeyVault.Secrets" Version="4.8.0" />
+        <PackageReference Include="Microsoft.Extensions.Azure" Version="1.13.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\Modules\Telegram\FeedMind.Modules.Telegram\FeedMind.Modules.Telegram.csproj" />
+    </ItemGroup>
+
 </Project>
