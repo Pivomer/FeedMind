@@ -40,6 +40,27 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2025-11-01' e
   name: acrScope.name
 }
 
+resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2024-02-02-preview' = {
+  name: 'cae-${containerName}-${env}'
+  location: location
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${identity.id}': {}
+    }
+  }
+  properties: {
+    workloadProfiles: [
+      {
+        name: 'Consumption'
+        workloadProfileType: 'Consumption'
+      }
+    ]
+    zoneRedundant: false
+    publicNetworkAccess: 'Disabled'
+  }
+}
+
 resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2025-01-31-preview' = {
   name: 'id-${containerName}'
   location: location
@@ -72,7 +93,7 @@ module containerApp './../modules/container-app/main.bicep' = {
     name: containerName
     env: env
     tags: tags
-    containerAppsEnvironment: commonScope.caeScope
+    containerAppsEnvironmentName: containerAppEnvironment.name
     containerRegistryServer: containerRegistry.properties.loginServer
     environmentVariables: environmentVariables
     userAssignedIdentityId: identity.id

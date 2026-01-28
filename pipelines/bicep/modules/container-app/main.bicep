@@ -24,7 +24,8 @@ param environmentVariables {
   value: string
 }[]
 
-param containerAppsEnvironment resourceScope
+@description('Container App environment name.')
+param containerAppsEnvironmentName string
 
 @description('Container registry server URL.')
 param containerRegistryServer string
@@ -64,13 +65,12 @@ var location = resourceGroup().location
 var volumeName = 'feedmind-volume'
 var storageName = 'storage-share'
 
-resource cae 'Microsoft.App/managedEnvironments@2025-01-01' existing = {
-  scope: az.resourceGroup(containerAppsEnvironment.resourceGroupName)
-  name: containerAppsEnvironment.name
+resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2025-01-01' existing = {
+  name: containerAppsEnvironmentName
 }
 
 resource appStorage 'Microsoft.App/managedEnvironments/storages@2025-01-01' existing = {
-  parent: cae
+  parent: containerAppsEnvironment
   name: storageName
 }
 
@@ -85,7 +85,7 @@ resource containerApp 'Microsoft.App/containerApps@2025-10-02-preview' = {
   }
   tags: tags
   properties: {
-    environmentId: cae.id
+    environmentId: containerAppsEnvironment.id
     configuration: {
       activeRevisionsMode: 'Single'
       ingress: ingress
