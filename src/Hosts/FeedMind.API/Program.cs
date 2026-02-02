@@ -1,8 +1,6 @@
 ﻿using Azure.Core;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
-using FeedMind.API.BackgroundServices;
-using FeedMind.API.BackgroundServices.Health;
 using FeedMind.API.Settings;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
@@ -64,12 +62,6 @@ public static class Program
         builder.Services.AddAzureClients(credentials);
 
         builder.Services.AddTelegramModule(builder.Configuration.GetSection(TelegramModuleRegistration.SectionName), appHome);
-
-        builder.Services.AddSingleton<WorkerStates>();
-        builder.Services.AddHostedService<TelegramFeedParserJob>();
-        builder.Services.AddHostedService<TelegramBotPollingService>();
-
-        builder.Services.AddHealthChecks().AddCheck<WorkersHealthCheck>("workers");
 
         var app = builder.Build();
 
