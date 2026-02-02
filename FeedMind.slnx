@@ -1,9 +1,12 @@
 <Solution>
     <Folder Name="/Hosts/">
-        <Project Path="src\Hosts\FeedMind.API\FeedMind.API.csproj" Type="Classic C#" />
+        <Project Path="src\Hosts\FeedMind.API\FeedMind.API.csproj" Type="C#" />
     </Folder>
     <Folder Name="/Modules/" />
     <Folder Name="/Modules/Telegram/">
-        <Project Path="src\Modules\Telegram\FeedMind.Modules.Telegram\FeedMind.Modules.Telegram.csproj" Type="Classic C#" />
+        <Project Path="src\Modules\Telegram\FeedMind.Modules.Telegram\FeedMind.Modules.Telegram.csproj" Type="C#" />
+    </Folder>
+    <Folder Name="/UnitTests/">
+        <Project Path="src/UnitTests/UnitTests/UnitTests.csproj" />
     </Folder>
 </Solution>
