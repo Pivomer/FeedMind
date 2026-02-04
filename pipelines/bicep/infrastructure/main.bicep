@@ -40,6 +40,10 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2025-11-01' e
   name: acrScope.name
 }
 
+resource storageAccount 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
+  name: commonScope.storageScope.name
+}
+
 resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2024-02-02-preview' = {
   name: 'cae-${containerName}-${env}'
   location: location
@@ -83,6 +87,17 @@ module kvRoleAssignment 'br/private:authorization/role-assignments-keyvault:v1' 
     principalId: identity.properties.principalId
     roleId: azureRoles.kv.keyVaultSecretsUser
     keyVaultName: commonScope.kvScope.name
+    principalType: 'ServicePrincipal'
+  }
+}
+
+module stRoleAssignment 'br/private:authorization/role-assignments-storage-account:v1' = {
+  scope: az.resourceGroup(commonScope.storageScope.resourceGroupName)
+  name: 'storageAccountRoleAssignment'
+  params: {
+    principalId: identity.properties.principalId
+    roleId: azureRoles.storage.storageTableDataContributor
+    storageAccountName: storageAccount.name
     principalType: 'ServicePrincipal'
   }
 }
