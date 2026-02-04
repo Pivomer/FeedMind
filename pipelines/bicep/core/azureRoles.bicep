@@ -7,4 +7,7 @@ var azureRoles = {
   kv: {
     keyVaultSecretsUser: '4633458b-17de-408a-b874-0445c86b69e6'
   }
+  storage: {
+    storageTableDataContributor: '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'
+  }
 }
