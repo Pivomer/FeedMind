@@ -1,12 +1,17 @@
 ﻿using System.Threading.Channels;
+using Azure.Data.Tables;
 using Azure.Security.KeyVault.Secrets;
+using FeedMind.Modules.Telegram.Application.Handlers.Commands;
+using FeedMind.Modules.Telegram.Application.Handlers.Posts;
 using FeedMind.Modules.Telegram.Domain.Models;
 using FeedMind.Modules.Telegram.DTOs.Incoming;
 using FeedMind.Modules.Telegram.Infrastructure.BotApi;
+using FeedMind.Modules.Telegram.Infrastructure.Persistence.AzureTable.Repositories;
 using FeedMind.Modules.Telegram.Infrastructure.Wclient;
 using FeedMind.Modules.Telegram.Services.Background;
 using FeedMind.Modules.Telegram.Services.Health;
 using FeedMind.Modules.Telegram.Settings;
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Telegram.Bot;
@@ -48,9 +53,14 @@ public static class TelegramModuleRegistration
             services.AddScoped<BotUpdateHandler>();
             services.AddScoped<MessageHandler>();
 
+            services.AddTelegramHandlers();
+            services.AddRepository<UserRepository>(UserRepository.TableName);
+            services.AddRepository<SubscriptionRepository>(SubscriptionRepository.TableName);
+
             services.AddHostedService<ChannelFeedListenerService>();
             services.AddHostedService<BotPollingService>();
             services.AddHostedService<PostConsumerService>();
+            services.AddHostedService<TableInitializerService>();
 
             services.AddSingleton<WorkerStates>();
             services.AddHealthChecks().AddCheck<WorkersHealthCheck>("workers");
@@ -68,6 +78,23 @@ public static class TelegramModuleRegistration
                 services.AddSingleton(channel.Reader);
                 services.AddSingleton(channel.Writer);
             }
+        }
+
+        private void AddRepository<T>(string tableName) where T : class
+        {
+            services.AddKeyedSingleton<TableClient>(tableName, (sp, _) =>
+            {
+                var factory = sp.GetRequiredService<IAzureClientFactory<TableServiceClient>>();
+                var serviceClient = factory.CreateClient(TelegramSettings.TableServiceClientName);
+                return serviceClient.GetTableClient(tableName);
+            });
+            services.AddSingleton<T>();
+        }
+
+        private void AddTelegramHandlers()
+        {
+            services.AddSingleton<IncomingPostHandler>();
+            services.AddSingleton<UnsubscribeHandler>();
         }
     }
 }

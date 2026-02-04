@@ -58,6 +58,11 @@ public sealed class PostConsumerService : BackgroundService
 
     private async Task ProcessMessage(RawTelegramMessageDto message, CancellationToken stoppingToken)
     {
+        if (string.IsNullOrEmpty(message.Text))
+        {
+            return;
+        }
+
         var postModel = TelegramMessageMapper.ToTelegramPost(message);
         await _botApiClient.SendPostToChats(postModel, stoppingToken);
     }
