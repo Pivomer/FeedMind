@@ -1,7 +1,9 @@
 ﻿using Azure.Core;
+using Azure.Data.Tables;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 using FeedMind.API.Settings;
+using FeedMind.Modules.Telegram.Settings;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Azure;
@@ -85,10 +87,15 @@ public static class Program
         services.AddAzureClients(clientBuilder =>
         {
             clientBuilder.UseCredential(credential);
+            clientBuilder.AddClient<TableServiceClient, TableClientOptions>((clientOptions, clientCredential, provider) =>
+            {
+                var appSettings = provider.GetRequiredService<IOptions<AppSettings>>().Value;
+                return new TableServiceClient(new Uri(appSettings.AppTableServiceUri), clientCredential, clientOptions);
+            }).WithName(TelegramSettings.TableServiceClientName);
+
             clientBuilder.AddClient<SecretClient, SecretClientOptions>((clientOptions, clientCredential, provider) =>
             {
                 var appSettings = provider.GetRequiredService<IOptions<AppSettings>>().Value;
-
                 return new SecretClient(new Uri(appSettings.KeyVaultUri), clientCredential, clientOptions);
             });
         });

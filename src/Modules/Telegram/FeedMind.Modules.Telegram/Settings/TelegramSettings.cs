@@ -22,4 +22,5 @@ public sealed class TelegramSettings
     [Required]
     public required IReadOnlyList<long> ChatIds { get; init; }
 
+    public const string TableServiceClientName = "TelegramTableServiceClient";
 }

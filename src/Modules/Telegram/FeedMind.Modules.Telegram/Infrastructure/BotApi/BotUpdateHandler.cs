@@ -20,10 +20,11 @@ public sealed class BotUpdateHandler
     {
         try
         {
+            _logger.LogInformation("Received update of type {UpdateType}", update.Type);
             switch (update.Type)
             {
                 case UpdateType.Message when update.Message is { } message:
-                    await _messageHandler.HandleMessageAsync(bot, message, cancellationToken);
+                    await _messageHandler.HandleMessage(bot, message, cancellationToken);
                     break;
                 case UpdateType.CallbackQuery when update.CallbackQuery is { } callback:
                     await bot.AnswerCallbackQuery(
@@ -31,6 +32,9 @@ public sealed class BotUpdateHandler
                         text: "Feature not implemented yet",
                         showAlert: false,
                         cancellationToken: cancellationToken);
+                    break;
+                default:
+                    _logger.LogWarning("Unhandled update type {UpdateType}", update.Type);
                     break;
             }
         }
