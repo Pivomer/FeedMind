@@ -1,4 +1,5 @@
 ﻿using System.Threading.Channels;
+using FeedMind.Modules.Telegram.Application.Channels;
 using FeedMind.Modules.Telegram.DTOs.Incoming;
 using FeedMind.Modules.Telegram.Infrastructure.Wclient;
 using FeedMind.Modules.Telegram.Mappings;
@@ -15,6 +16,7 @@ public sealed class ChannelFeedListenerService : BackgroundService
     private readonly WTelegramClient _telegramClient;
     private readonly TelegramMessageMapper _mapper;
     private readonly ChannelWriter<RawTelegramMessageDto> _channelWriter;
+    private readonly ChannelSubscriptionManager _channelSubscriptionManager;
 
     private Action<TelegramTransientError>? _transientErrorHandler;
     private Action<TelegramFatalError>? _fatalErrorHandler;
@@ -24,12 +26,14 @@ public sealed class ChannelFeedListenerService : BackgroundService
         WTelegramClient telegramClient,
         TelegramMessageMapper mapper,
         ChannelWriter<RawTelegramMessageDto> channelWriter,
+        ChannelSubscriptionManager channelSubscriptionManager,
         WorkerStates states)
     {
         _logger = logger;
         _telegramClient = telegramClient;
         _mapper = mapper;
         _channelWriter = channelWriter;
+        _channelSubscriptionManager = channelSubscriptionManager;
         _health = states.ChannelFeedListener;
     }
 
@@ -39,6 +43,7 @@ public sealed class ChannelFeedListenerService : BackgroundService
         try
         {
             RegisterHealthHooks();
+            await _channelSubscriptionManager.InitializeListeningChannels(stoppingToken);
             await StartListener();
             await Task.Delay(Timeout.Infinite, stoppingToken);
         }

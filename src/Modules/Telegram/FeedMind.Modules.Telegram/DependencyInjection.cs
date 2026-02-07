@@ -1,13 +1,16 @@
 ﻿using System.Threading.Channels;
 using Azure.Data.Tables;
 using Azure.Security.KeyVault.Secrets;
+using FeedMind.Modules.Telegram.Application.Channels;
 using FeedMind.Modules.Telegram.Application.Handlers.Commands;
 using FeedMind.Modules.Telegram.Application.Handlers.Posts;
+using FeedMind.Modules.Telegram.Application.Posts;
 using FeedMind.Modules.Telegram.Domain.Models;
 using FeedMind.Modules.Telegram.DTOs.Incoming;
 using FeedMind.Modules.Telegram.Infrastructure.BotApi;
 using FeedMind.Modules.Telegram.Infrastructure.Persistence.AzureTable.Repositories;
 using FeedMind.Modules.Telegram.Infrastructure.Wclient;
+using FeedMind.Modules.Telegram.Infrastructure.Wclient.Handlers;
 using FeedMind.Modules.Telegram.Services.Background;
 using FeedMind.Modules.Telegram.Services.Health;
 using FeedMind.Modules.Telegram.Settings;
@@ -33,6 +36,7 @@ public static class TelegramModuleRegistration
                 .ValidateDataAnnotations()
                 .ValidateOnStart();
 
+            services.AddScoped<JoinChannelErrorHandler>();
             services.AddChannels();
             services.AddSingleton<TelegramMessageMapper>();
             services.AddSingleton<SessionManager>(provider =>
@@ -56,6 +60,9 @@ public static class TelegramModuleRegistration
             services.AddTelegramHandlers();
             services.AddRepository<UserRepository>(UserRepository.TableName);
             services.AddRepository<SubscriptionRepository>(SubscriptionRepository.TableName);
+
+            services.AddSingleton<ChannelSubscriptionManager>();
+            services.AddSingleton<TelegramPostDispatcher>();
 
             services.AddHostedService<ChannelFeedListenerService>();
             services.AddHostedService<BotPollingService>();
