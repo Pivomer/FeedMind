@@ -1,0 +1,17 @@
+name: "Create build number"
+description: "Create a unique build number in date format (yyyymmdd.run_number). eg, 20240824.7"
+
+outputs:
+  build_number:
+    description: "Build number"
+    value: ${{ steps.set_build_number.outputs.build_number }}
+runs:
+  using: "composite"
+  steps:
+    - name: Create build number
+      id: set_build_number
+      run: |
+        BUILD_NUMBER=$(date +'%Y%m%d').${{ github.run_number }}
+        echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+        echo "build_number=$BUILD_NUMBER"
+      shell: bash
