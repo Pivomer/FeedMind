@@ -130,4 +130,54 @@ public sealed class SubscriptionRepository
 
         return count;
     }
+
+    public async Task<HashSet<string>> GetDistinctActiveChannelNames(CancellationToken cancellationToken)
+    {
+        var hashSet = new HashSet<string>();
+        await foreach (var entity in _tableClient.QueryAsync<SubscriptionEntity>(x => x.IsActive, cancellationToken: cancellationToken))
+        {
+            if (!string.IsNullOrEmpty(entity.ChannelName))
+            {
+                hashSet.Add(entity.ChannelName);
+            }
+        }
+
+        return hashSet;
+    }
+
+    public async Task RemoveChannel(string channelName, CancellationToken cancellationToken)
+    {
+        var count = 0;
+
+        await foreach (var entity in _tableClient.QueryAsync<SubscriptionEntity>(x => x.ChannelName == channelName, cancellationToken: cancellationToken))
+        {
+            try
+            {
+                await _tableClient.DeleteEntityAsync(entity, cancellationToken: cancellationToken);
+                count++;
+            }
+            catch (RequestFailedException failedException) when (failedException.Status == 412)
+            {
+                _logger.LogWarning("ETag conflict while removing channel {ChannelName} for ChatId {ChatId}", channelName, entity.PartitionKey);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Failed to remove channel {ChannelName} for ChatId {ChatId}", channelName, entity.PartitionKey);
+            }
+        }
+
+        _logger.LogInformation("Channel {ChannelName} hard-removed from {Count} subscriptions", channelName, count);
+    }
+
+    public async Task<HashSet<string>> GetActiveChatIdsByChannel(string channelId, CancellationToken cancellationToken)
+    {
+        var result = new HashSet<string>();
+
+        await foreach (var entity in _tableClient.QueryAsync<SubscriptionEntity>(x => x.IsActive && x.RowKey == channelId, select: ["PartitionKey"], cancellationToken: cancellationToken))
+        {
+            result.Add(entity.PartitionKey);
+        }
+
+        return result;
+    }
 }

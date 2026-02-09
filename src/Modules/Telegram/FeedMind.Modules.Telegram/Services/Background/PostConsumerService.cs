@@ -1,6 +1,6 @@
 ﻿using System.Threading.Channels;
+using FeedMind.Modules.Telegram.Application.Posts;
 using FeedMind.Modules.Telegram.DTOs.Incoming;
-using FeedMind.Modules.Telegram.Infrastructure.BotApi;
 using FeedMind.Modules.Telegram.Mappings;
 using FeedMind.Modules.Telegram.Services.Health;
 using Microsoft.Extensions.Hosting;
@@ -12,14 +12,14 @@ public sealed class PostConsumerService : BackgroundService
 {
     private readonly ILogger<PostConsumerService> _logger;
     private readonly ChannelReader<RawTelegramMessageDto> _reader;
-    private readonly BotApiClient _botApiClient;
+    private readonly TelegramPostDispatcher _postDispatcher;
     private readonly WorkerState _health;
 
-    public PostConsumerService(ILogger<PostConsumerService> logger, ChannelReader<RawTelegramMessageDto> reader, WorkerStates states, BotApiClient botApiClient)
+    public PostConsumerService(ILogger<PostConsumerService> logger, ChannelReader<RawTelegramMessageDto> reader, TelegramPostDispatcher postDispatcher, WorkerStates states)
     {
         _logger = logger;
         _reader = reader;
-        _botApiClient = botApiClient;
+        _postDispatcher = postDispatcher;
         _health = states.PostConsumer;
     }
 
@@ -64,6 +64,6 @@ public sealed class PostConsumerService : BackgroundService
         }
 
         var postModel = TelegramMessageMapper.ToTelegramPost(message);
-        await _botApiClient.SendPostToChats(postModel, stoppingToken);
+        await _postDispatcher.SendPostToChats(postModel, stoppingToken);
     }
 }

@@ -1,4 +1,5 @@
-﻿using FeedMind.Modules.Telegram.Domain.Models;
+﻿using FeedMind.Modules.Telegram.Application.Channels;
+using FeedMind.Modules.Telegram.Domain.Models;
 using FeedMind.Modules.Telegram.Infrastructure.Persistence.AzureTable.Repositories;
 using Microsoft.Extensions.Logging;
 
@@ -9,12 +10,14 @@ public sealed class IncomingPostHandler
     private readonly ILogger<IncomingPostHandler> _logger;
     private readonly UserRepository _userRepository;
     private readonly SubscriptionRepository _subscriptionRepository;
+    private readonly ChannelSubscriptionManager _subscriptionManager;
 
-    public IncomingPostHandler(ILogger<IncomingPostHandler> logger, UserRepository userRepository, SubscriptionRepository subscriptionRepository)
+    public IncomingPostHandler(ILogger<IncomingPostHandler> logger, UserRepository userRepository, SubscriptionRepository subscriptionRepository, ChannelSubscriptionManager subscriptionManager)
     {
         _logger = logger;
         _userRepository = userRepository;
         _subscriptionRepository = subscriptionRepository;
+        _subscriptionManager = subscriptionManager;
     }
 
     public async Task HandleIncomingPost(IncomingPostInfo model, CancellationToken cancellationToken)
@@ -26,6 +29,7 @@ public sealed class IncomingPostHandler
             await _userRepository.RegisterOrGetUser(model.ChatId, cancellationToken);
             await _userRepository.UpdateLastInteraction(model.ChatId, cancellationToken);
             await _subscriptionRepository.Subscribe(model.ChatId, model.ChannelId, model.ChannelName, model.Title, cancellationToken);
+            await _subscriptionManager.Sync(cancellationToken);
 
             _logger.LogInformation("User {ChatId} subscribed to channel {ChannelId}", model.ChatId, model.ChannelId);
         }

@@ -19,8 +19,5 @@ public sealed class TelegramSettings
     [Required]
     public required string BotToken { get; init; }
 
-    [Required]
-    public required IReadOnlyList<long> ChatIds { get; init; }
-
     public const string TableServiceClientName = "TelegramTableServiceClient";
 }

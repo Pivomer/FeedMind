@@ -5,8 +5,8 @@ namespace FeedMind.Modules.Telegram.Infrastructure.Persistence.AzureTable.Entiti
 
 public sealed class SubscriptionEntity : ITableEntity
 {
-    public required string PartitionKey { get; set; } = string.Empty;
-    public required string RowKey { get; set; }
+    public required string PartitionKey { get; set; } = string.Empty; //ChatId
+    public required string RowKey { get; set; } //ChannelId
 
     public required string ChannelName { get; set; }
     public string? Title { get; set; }

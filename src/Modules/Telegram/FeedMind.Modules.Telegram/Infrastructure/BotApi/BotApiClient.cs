@@ -1,7 +1,5 @@
 ﻿using FeedMind.Modules.Telegram.Domain.Models;
-using FeedMind.Modules.Telegram.Settings;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
@@ -13,14 +11,12 @@ namespace FeedMind.Modules.Telegram.Infrastructure.BotApi;
 public sealed class BotApiClient
 {
     private readonly ILogger<BotApiClient> _logger;
-    private readonly TelegramSettings _settings;
     private readonly ITelegramBotClient _botClient;
     private readonly BotUpdateHandler _updateHandler;
 
-    public BotApiClient(ILogger<BotApiClient> logger, IOptions<TelegramSettings> options, ITelegramBotClient botClient, BotUpdateHandler botUpdateHandler)
+    public BotApiClient(ILogger<BotApiClient> logger, ITelegramBotClient botClient, BotUpdateHandler botUpdateHandler)
     {
         _logger = logger;
-        _settings = options.Value;
         _botClient = botClient;
         _updateHandler = botUpdateHandler;
     }
@@ -63,47 +59,22 @@ public sealed class BotApiClient
         return Task.CompletedTask;
     }
 
-    public async Task SendPostToChats(TelegramPost postModel, CancellationToken cancellationToken)
+    public async Task SendPostToChat(string chatId, TelegramPost postModel, CancellationToken cancellationToken)
     {
-        var successCount = 0;
-        var failureCount = 0;
-        var errors = new List<string>();
+        try
+        {
+            await _botClient.SendMessage(
+                chatId: chatId,
+                text: postModel.Text,
+                parseMode: ParseMode.Html,
+                cancellationToken: cancellationToken);
 
-        foreach (var chatId in _settings.ChatIds)
-        {
-            try
-            {
-                await _botClient.SendMessage(
-                    chatId: chatId,
-                    text: postModel.Text,
-                    parseMode: ParseMode.Html,
-                    cancellationToken: cancellationToken);
-                successCount++;
-                _logger.LogInformation("Post sent to chat {ChatId}", chatId);
-            }
-            catch (ApiRequestException apiEx)
-            {
-                failureCount++;
-                var error = $"Chat {chatId}: API error [{apiEx.ErrorCode}] - {apiEx.Message}";
-                errors.Add(error);
-                _logger.LogError(apiEx, "Failed to send post to chat {ChatId}", chatId);
-            }
-            catch (Exception exception)
-            {
-                failureCount++;
-                var error = $"Chat {chatId}: {exception.Message}";
-                errors.Add(error);
-                _logger.LogError(exception, "Failed to send post to chat {ChatId}", chatId);
-            }
+            _logger.LogInformation("Post sent to chat {ChatId}", chatId);
         }
-        if (successCount == 0 && failureCount > 0)
+        catch (ApiRequestException exception)
         {
-            var errorSummary = string.Join("; ", errors);
-            throw new InvalidOperationException($"Failed to send post to all {failureCount} configured chat(s). Errors: {errorSummary}");
-        }
-        if (failureCount > 0)
-        {
-            _logger.LogWarning("Post sent partially: {SuccessCount}/{TotalCount} chats succeeded, {FailureCount} failed", successCount, _settings.ChatIds.Count, failureCount);
+            _logger.LogError(exception, "Failed to send post to chat {ChatId}", chatId);
+            throw;
         }
     }
 }
