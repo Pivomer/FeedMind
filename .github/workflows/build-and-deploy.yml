@@ -30,9 +30,13 @@ jobs:
 
       - name: Build Number
         id: build_number
-        uses: ./.github/actions/semantic-version
+        uses: ./.github/actions/build-number
+
+      - name: Create Image Tag
+        id: create_image_tag
+        uses: ./.github/actions/create-image-tag
         with:
-          major-version: "1"
+          build-number: ${{ steps.build_number.outputs.build_number }}
 
       - name: Azure Login (OIDC)
         uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5
@@ -45,10 +49,14 @@ jobs:
         run: |
           az acr login --name ${{ env.ACR_NAME }}
 
+      - name: Unit tests
+        run: |
+          docker build --target unit-tests .
+
       - name: Build Docker image and push to ACR
         run: |
-          docker build -t ${{ env.ACR_REPOSITORY_NAME }}:${{ steps.build_number.outputs.semantic_version }} .
-          docker push ${{ env.ACR_REPOSITORY_NAME }}:${{ steps.build_number.outputs.semantic_version }}
+          docker build -t ${{ env.ACR_REPOSITORY_NAME }}:${{ steps.create_image_tag.outputs.image_tag }} .
+          docker push ${{ env.ACR_REPOSITORY_NAME }}:${{ steps.create_image_tag.outputs.image_tag }}
 
       - name: Copy app settings
         env:
@@ -68,5 +76,5 @@ jobs:
             --name ca-${{ env.CONTAINER_APP_NAME }}-dev \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --container-name ${{ env.CONTAINER_APP_NAME }} \
-            --image ${{ env.ACR_REPOSITORY_NAME }}:${{ steps.build_number.outputs.semantic_version }} \
+            --image ${{ env.ACR_REPOSITORY_NAME }}:${{ steps.create_image_tag.outputs.image_tag }} \
             ${{ inputs.debug && '--debug' || '' }}
