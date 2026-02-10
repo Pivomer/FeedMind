@@ -20,7 +20,6 @@ public sealed class BotUpdateHandler
     {
         try
         {
-            _logger.LogInformation("Received update of type {UpdateType}", update.Type);
             switch (update.Type)
             {
                 case UpdateType.Message when update.Message is { } message:
@@ -41,6 +40,7 @@ public sealed class BotUpdateHandler
         catch (Exception exception)
         {
             _logger.LogError(exception, "Failed to process update of type {UpdateType}", update.Type);
+            throw;
         }
     }
 }

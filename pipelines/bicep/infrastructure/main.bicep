@@ -44,7 +44,12 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2024-01-01' existing 
   name: commonScope.storageScope.name
 }
 
-resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2024-02-02-preview' = {
+resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' existing = {
+  scope: az.resourceGroup(commonScope.logAnalyticsScope.resourceGroupName)
+  name: commonScope.logAnalyticsScope.name
+}
+
+resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2024-10-02-preview' = {
   name: 'cae-${containerName}-${env}'
   location: location
   identity: {
@@ -62,12 +67,40 @@ resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2024-02-02-p
     ]
     zoneRedundant: false
     publicNetworkAccess: 'Disabled'
+
+    appLogsConfiguration: {
+      destination: 'log-analytics'
+      logAnalyticsConfiguration: {
+        customerId: logAnalytics.properties.customerId
+        sharedKey: logAnalytics.listKeys().primarySharedKey
+      }
+    }
+    appInsightsConfiguration: {
+      connectionString: applicationInsights.outputs.connectionString
+    }
+    openTelemetryConfiguration: {
+      tracesConfiguration: {
+        destinations: ['appInsights']
+      }
+      logsConfiguration: {
+        destinations: ['appInsights']
+      }
+    }
   }
 }
 
 resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2025-01-31-preview' = {
   name: 'id-${containerName}'
   location: location
+}
+
+module applicationInsights 'br/private:insights/application-insight:v1' = {
+  name: 'applicationInsights'
+  params: {
+    env: env
+    tags: tags
+    name: containerName
+  }
 }
 
 module acrPullRoleAssignment 'br/private:authorization/role-assignments-container-registry:v1' = {

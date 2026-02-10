@@ -21,7 +21,6 @@ public sealed class BotPollingService : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("BotPollingService started");
-
         try
         {
             _health.MarkHealthy();

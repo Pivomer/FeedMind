@@ -1,4 +1,5 @@
-﻿using System.Threading.Channels;
+﻿using System.Diagnostics;
+using System.Threading.Channels;
 using FeedMind.Modules.Telegram.Application.Channels;
 using FeedMind.Modules.Telegram.DTOs.Incoming;
 using FeedMind.Modules.Telegram.Infrastructure.Wclient;
@@ -6,6 +7,7 @@ using FeedMind.Modules.Telegram.Mappings;
 using FeedMind.Modules.Telegram.Services.Health;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using static FeedMind.Modules.Telegram.Telemetry;
 
 namespace FeedMind.Modules.Telegram.Services.Background;
 
@@ -86,14 +88,25 @@ public sealed class ChannelFeedListenerService : BackgroundService
 
     private async Task MessageReceived(TL.Message message)
     {
+        using var activity = Source.StartActivity(Operations.TelegramMessageReceive, ActivityKind.Consumer);
         try
         {
+            activity?.SetTag(Tags.MessagingSystem, "telegram");
+            activity?.SetTag(Tags.MessagingOperation, "receive");
+            activity?.SetTag(Tags.MessagingDestinationName, "telegram-channel");
+            activity?.SetTag(Tags.TelegramChannelId, message.peer_id?.ToString() ?? "unknown");
+            activity?.SetTag(Tags.MessagingMessageId, message.id.ToString());
+
             var dto = _mapper.ToRawMessageDto(message);
+            dto.TraceContext = activity?.Context;
             await _channelWriter.WriteAsync(dto);
             _health.RecordSuccess();
         }
         catch (Exception exception)
         {
+            activity?.SetStatus(ActivityStatusCode.Error, exception.Message);
+            activity?.AddException(exception);
+
             _logger.LogError(exception, "Message processing failed");
             _health.RecordError();
         }

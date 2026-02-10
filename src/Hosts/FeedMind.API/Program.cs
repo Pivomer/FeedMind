@@ -3,10 +3,14 @@ using Azure.Data.Tables;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 using FeedMind.API.Settings;
+using FeedMind.Modules.Telegram;
 using FeedMind.Modules.Telegram.Settings;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Azure;
+using OpenTelemetry;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 namespace FeedMind.API;
 
@@ -72,6 +76,7 @@ public static class Program
         builder.Services.AddAzureClients(credentials);
 
         builder.Services.AddTelegramModule(builder.Configuration.GetSection(TelegramModuleRegistration.SectionName), appHome);
+        builder.Services.ConfigureOpenTelemetry(builder.Configuration, appEnvironment);
 
         var app = builder.Build();
 
@@ -107,5 +112,30 @@ public static class Program
                 return new SecretClient(new Uri(appSettings.KeyVaultUri), clientCredential, clientOptions);
             });
         });
+    }
+
+    private static void ConfigureOpenTelemetry(this IServiceCollection services, ConfigurationManager configuration, string appEnvironment)
+    {
+        var oTel = services.AddOpenTelemetry()
+            .ConfigureResource(builder => ConfigureResource(builder, ServiceName, appEnvironment))
+            .WithTracing(AddTracing);
+
+        var oTelEndpoint = configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
+        if (!string.IsNullOrWhiteSpace(oTelEndpoint))
+        {
+            oTel.UseOtlpExporter();
+        }
+    }
+
+    private static void ConfigureResource(ResourceBuilder resourceBuilder, string serviceName, string environmentName)
+    {
+        var serviceVersion = typeof(Program).Assembly.GetName().Version?.ToString() ?? "unknown";
+        resourceBuilder.AddService(serviceName: serviceName, serviceNamespace: $"{ServiceName}-{environmentName}", serviceVersion: serviceVersion);
+    }
+
+    private static void AddTracing(TracerProviderBuilder tracer)
+    {
+        tracer.AddAspNetCoreInstrumentation(x => { x.RecordException = true; });
+        tracer.AddTelegramInstrumentation();
     }
 }

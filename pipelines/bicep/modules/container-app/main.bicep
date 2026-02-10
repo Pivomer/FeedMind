@@ -119,8 +119,8 @@ resource containerApp 'Microsoft.App/containerApps@2025-10-02-preview' = {
                 path: '/health/live'
                 port: 8080
               }
-              initialDelaySeconds: 5
-              periodSeconds: 10
+              initialDelaySeconds: 15
+              periodSeconds: 60
             }
             {
               type: 'Readiness'
@@ -128,8 +128,8 @@ resource containerApp 'Microsoft.App/containerApps@2025-10-02-preview' = {
                 path: '/health/ready'
                 port: 8080
               }
-              initialDelaySeconds: 5
-              periodSeconds: 10
+              initialDelaySeconds: 15
+              periodSeconds: 60
             }
           ]
         }
