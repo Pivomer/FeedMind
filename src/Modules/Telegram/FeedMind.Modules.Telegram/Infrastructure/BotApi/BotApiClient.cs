@@ -1,4 +1,5 @@
 ﻿using FeedMind.Modules.Telegram.Domain.Models;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
@@ -12,13 +13,13 @@ public sealed class BotApiClient
 {
     private readonly ILogger<BotApiClient> _logger;
     private readonly ITelegramBotClient _botClient;
-    private readonly BotUpdateHandler _updateHandler;
+    private readonly IServiceScopeFactory _scopeFactory;
 
-    public BotApiClient(ILogger<BotApiClient> logger, ITelegramBotClient botClient, BotUpdateHandler botUpdateHandler)
+    public BotApiClient(ILogger<BotApiClient> logger, ITelegramBotClient botClient, IServiceScopeFactory scopeFactory)
     {
         _logger = logger;
         _botClient = botClient;
-        _updateHandler = botUpdateHandler;
+        _scopeFactory = scopeFactory;
     }
 
     public async Task StartPolling(CancellationToken stoppingToken)
@@ -36,9 +37,12 @@ public sealed class BotApiClient
 
     private async Task HandleUpdate(ITelegramBotClient client, Update update, CancellationToken cancellationToken)
     {
+        using var scope = _scopeFactory.CreateScope();
+        var updateHandler = scope.ServiceProvider.GetRequiredService<BotUpdateHandler>();
+
         try
         {
-            await _updateHandler.HandleUpdate(client, update, cancellationToken);
+            await updateHandler.HandleUpdate(client, update, cancellationToken);
         }
         catch (Exception exception)
         {
