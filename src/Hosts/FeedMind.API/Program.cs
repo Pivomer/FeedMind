@@ -40,6 +40,14 @@ public static class Program
         Console.WriteLine($"Starting: {AppHome}: {appHome} ConfigDirectory: {configPath} {ApplicationEnvironment}: {appEnvironment}");
 
         var builder = WebApplication.CreateBuilder(args);
+        if (AppSettings.IsLocal(appEnvironment))
+        {
+            builder.Host.UseDefaultServiceProvider(options =>
+            {
+                options.ValidateScopes = true;
+                options.ValidateOnBuild = true;
+            });
+        }
 
         builder.Configuration
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)

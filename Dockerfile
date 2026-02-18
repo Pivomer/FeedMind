@@ -6,7 +6,6 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 COPY Directory.Build.props ./
-COPY *.sln ./
 COPY src/. .
 
 RUN dotnet restore "Hosts/FeedMind.API/FeedMind.API.csproj"

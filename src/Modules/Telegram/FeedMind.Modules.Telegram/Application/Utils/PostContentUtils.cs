@@ -1,4 +1,6 @@
-﻿namespace FeedMind.Modules.Telegram.Application.Utils;
+using System.Net;
+
+namespace FeedMind.Modules.Telegram.Application.Utils;
 
 public static class PostContentUtils
 {
@@ -8,6 +10,7 @@ public static class PostContentUtils
     public static string BuildFormattedPostText(string? rawContent, long channelId, int messageId, string linkDisplayText = "Link")
     {
         var normalized = NormalizeContent(rawContent ?? string.Empty);
+        var encoded = WebUtility.HtmlEncode(normalized);
 
         var cleanId = Math.Abs(channelId);
         if (cleanId > 1_000_000_000_000)
@@ -16,7 +19,7 @@ public static class PostContentUtils
         }
 
         var url = $"https://t.me/c/{cleanId}/{messageId}";
-        return $"{normalized}\n<a href=\"{url}\">{linkDisplayText}</a>";
+        return $"{encoded}\n<a href=\"{url}\">{linkDisplayText}</a>";
     }
 
     public static string NormalizeContent(string? rawText)

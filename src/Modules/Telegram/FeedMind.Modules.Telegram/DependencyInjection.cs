@@ -36,7 +36,7 @@ public static class TelegramModuleRegistration
                 .ValidateDataAnnotations()
                 .ValidateOnStart();
 
-            services.AddScoped<JoinChannelErrorHandler>();
+            services.AddSingleton<JoinChannelErrorHandler>();
             services.AddChannels();
             services.AddSingleton<TelegramMessageMapper>();
             services.AddSingleton<SessionManager>(provider =>
@@ -51,7 +51,7 @@ public static class TelegramModuleRegistration
                 var token = secretClient.GetSecret(settings.BotToken).Value.Value;
                 return new TelegramBotClient(token);
             });
-            services.AddScoped<BotApiClient>();
+            services.AddSingleton<BotApiClient>();
 
             services.AddSingleton<WTelegramClient>();
             services.AddScoped<BotUpdateHandler>();
