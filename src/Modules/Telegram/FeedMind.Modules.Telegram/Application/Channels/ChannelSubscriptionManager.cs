@@ -29,8 +29,7 @@ public sealed class ChannelSubscriptionManager
         {
             _listeningChannels.TryAdd(channelName, new object());
         }
-
-        _logger.LogInformation("Initialized listening channels: {Count}", _listeningChannels.Count);
+        _logger.LogInformation("Initialized listening channels: {ChannelNames}. {Count}  ", string.Join(", ", activeChannels),_listeningChannels.Count);
     }
 
     public async Task Sync(CancellationToken cancellationToken)

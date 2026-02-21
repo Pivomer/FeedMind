@@ -5,6 +5,7 @@ using FeedMind.Modules.Telegram.Application.Utils;
 using Microsoft.Extensions.Logging;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using static FeedMind.Modules.Telegram.Telemetry;
 
 namespace FeedMind.Modules.Telegram.Infrastructure.BotApi;
 
@@ -44,6 +45,10 @@ public sealed class MessageHandler
                 return;
             }
 
+            using var activity = Source.StartActivity(Operations.MessageHandle);
+            activity?.SetTag(Tags.TelegramChatId, message.Chat.Id.ToString());
+            activity?.SetTag(Tags.TelegramCommandName, parsedCommand.Name.ToString());
+
             _logger.LogInformation("Processing command {Command} from ChatId {ChatId}", parsedCommand.Name, message.Chat.Id);
             switch (parsedCommand.Name)
             {
@@ -73,6 +78,7 @@ public sealed class MessageHandler
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to handle message from ChatId {ChatId}", message.Chat.Id);
+            throw;
         }
     }
 
@@ -97,6 +103,10 @@ public sealed class MessageHandler
         {
             return;
         }
+
+        using var activity = Source.StartActivity(Operations.MessageHandle);
+        activity?.SetTag(Tags.TelegramChatId, message.Chat.Id.ToString());
+        activity?.SetTag(Tags.TelegramMessageType, "forwarded");
 
         await _incomingPostHandler.HandleIncomingPost(model, cancellationToken);
         await bot.SendMessage(message.Chat.Id, $"You have subscribed to channel @{model.ChannelName}", cancellationToken: cancellationToken);

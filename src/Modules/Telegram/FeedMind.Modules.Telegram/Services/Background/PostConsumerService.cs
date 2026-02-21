@@ -1,10 +1,12 @@
-﻿using System.Threading.Channels;
+﻿using System.Diagnostics;
+using System.Threading.Channels;
 using FeedMind.Modules.Telegram.Application.Posts;
 using FeedMind.Modules.Telegram.DTOs.Incoming;
 using FeedMind.Modules.Telegram.Mappings;
 using FeedMind.Modules.Telegram.Services.Health;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using static FeedMind.Modules.Telegram.Telemetry;
 
 namespace FeedMind.Modules.Telegram.Services.Background;
 
@@ -63,7 +65,22 @@ public sealed class PostConsumerService : BackgroundService
             return;
         }
 
-        var postModel = TelegramMessageMapper.ToTelegramPost(message);
-        await _postDispatcher.SendPostToChats(postModel, stoppingToken);
+        using var activity = Source.StartActivity(Operations.InternalMessageProcess, ActivityKind.Consumer, message.TraceContext ?? default);
+        try
+        {
+            activity?.SetTag(Tags.MessagingSystem, "internal-channel");
+            activity?.SetTag(Tags.MessagingOperation, "process");
+            activity?.SetTag(Tags.MessagingDestinationName, "raw-telegram-messages");
+            activity?.SetTag(Tags.MessagingMessageId, message.MessageId.ToString());
+
+            var postModel = TelegramMessageMapper.ToTelegramPost(message);
+            await _postDispatcher.SendPostToChats(postModel, stoppingToken);
+        }
+        catch (Exception ex)
+        {
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.AddException(ex);
+            throw;
+        }
     }
 }

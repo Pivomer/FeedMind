@@ -1,7 +1,9 @@
-﻿using FeedMind.Modules.Telegram.Domain.Models;
+﻿using System.Diagnostics;
+using FeedMind.Modules.Telegram.Domain.Models;
 using FeedMind.Modules.Telegram.Infrastructure.BotApi;
 using FeedMind.Modules.Telegram.Infrastructure.Persistence.AzureTable.Repositories;
 using Microsoft.Extensions.Logging;
+using static FeedMind.Modules.Telegram.Telemetry;
 
 namespace FeedMind.Modules.Telegram.Application.Posts;
 
@@ -22,11 +24,21 @@ public sealed class TelegramPostDispatcher
     {
         var successCount = 0;
         var errors = new List<string>();
-        var chanelId = post.ChannelId.ToString();
-        var chatIds = await _subscriptions.GetActiveChatIdsByChannel(chanelId, ct);
+        var channelId = post.ChannelId.ToString();
+        var chatIds = await _subscriptions.GetActiveChatIdsByChannel(channelId, ct);
+
+        using var dispatchActivity = Source.StartActivity("PostDispatch", ActivityKind.Producer);
+        dispatchActivity?.SetTag(Tags.MessagingSystem, "telegram");
+        dispatchActivity?.SetTag(Tags.MessagingOperation, "publish");
+        dispatchActivity?.SetTag(Tags.MessagingDestinationName, "telegram-chats");
+        dispatchActivity?.SetTag("telegram.channel_id", channelId);
+        dispatchActivity?.SetTag("telegram.total_chats", chatIds.Count);
 
         foreach (var chatId in chatIds)
         {
+            using var chatActivity = Source.StartActivity("PostDispatchToChat", ActivityKind.Producer, dispatchActivity?.Context ?? default);
+            chatActivity?.SetTag(Tags.MessagingDestinationName, chatId);
+            chatActivity?.SetTag(Tags.MessagingOperation, "publish");
             try
             {
                 await _botApiClient.SendPostToChat(chatId, post, ct);
@@ -34,6 +46,9 @@ public sealed class TelegramPostDispatcher
             }
             catch (Exception exception)
             {
+                chatActivity?.SetStatus(ActivityStatusCode.Error, exception.Message);
+                chatActivity?.AddException(exception);
+
                 var error = $"Chat {chatId}: {exception.Message}";
                 errors.Add(error);
                 _logger.LogError(exception, "Failed to send post to chat {ChatId}", chatId);

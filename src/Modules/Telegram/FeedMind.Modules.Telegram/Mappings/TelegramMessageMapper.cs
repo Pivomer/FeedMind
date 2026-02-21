@@ -11,6 +11,7 @@ public partial class TelegramMessageMapper
     [MapProperty(nameof(Message.id), nameof(RawTelegramMessageDto.MessageId))]
     [MapProperty(nameof(Message.message), nameof(RawTelegramMessageDto.Text))]
     [MapProperty(nameof(Message.peer_id), nameof(RawTelegramMessageDto.ChannelId), Use = nameof(PeerToChatId))]
+    [MapperIgnoreTarget(nameof(RawTelegramMessageDto.TraceContext))]
 
     public partial RawTelegramMessageDto ToRawMessageDto(Message message);
 

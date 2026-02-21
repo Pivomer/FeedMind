@@ -9,6 +9,7 @@ type resourceScope = {
 type commonScopeType = {
   kvScope: resourceScope
   storageScope: resourceScope
+  logAnalyticsScope: resourceScope
 }
 
 var containerRegistryScope resourceScope = {
@@ -27,6 +28,12 @@ func commonResourceGroupName(env envType) string => 'rg-pvm-common-${env}'
 func createCommonScope(env envType) commonScopeType => {
   kvScope: keyVaultScope(env)
   storageScope: storageScope(env)
+  logAnalyticsScope: logAnalyticsScope(env)
+}
+
+func logAnalyticsScope(env envType) resourceScope => {
+  name: 'la-pvm-${env}'
+  resourceGroupName: commonResourceGroupName(env)
 }
 
 func keyVaultScope(env envType) resourceScope => {
