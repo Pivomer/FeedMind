@@ -15,7 +15,7 @@ public partial class TelegramMessageMapper
 
     public partial RawTelegramMessageDto ToRawMessageDto(Message message);
 
-    public static TelegramPost ToTelegramPost(RawTelegramMessageDto dto) => TelegramPost.FromRaw(dto);
+    public static TelegramPost? ToTelegramPost(RawTelegramMessageDto dto) => TelegramPost.FromRaw(dto);
 
     private static long PeerToChatId(Peer? peer)
     {

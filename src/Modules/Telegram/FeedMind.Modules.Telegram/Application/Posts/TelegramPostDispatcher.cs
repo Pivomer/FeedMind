@@ -11,12 +11,14 @@ public sealed class TelegramPostDispatcher
 {
     private readonly ILogger<TelegramPostDispatcher> _logger;
     private readonly SubscriptionRepository _subscriptions;
+    private readonly MessageRepository _messages;
     private readonly BotApiClient _botApiClient;
 
-    public TelegramPostDispatcher(ILogger<TelegramPostDispatcher> logger, SubscriptionRepository subscriptions, BotApiClient botApiClient)
+    public TelegramPostDispatcher(ILogger<TelegramPostDispatcher> logger, SubscriptionRepository subscriptions, MessageRepository messages, BotApiClient botApiClient)
     {
         _logger = logger;
         _subscriptions = subscriptions;
+        _messages = messages;
         _botApiClient = botApiClient;
     }
 
@@ -41,7 +43,15 @@ public sealed class TelegramPostDispatcher
             chatActivity?.SetTag(Tags.MessagingOperation, "publish");
             try
             {
-                await _botApiClient.SendPostToChat(chatId, post, ct);
+                var message = await _botApiClient.SendPostToChat(chatId, post, ct);
+                await _messages.Save(
+                    userId: chatId,
+                    botMessageId: message.Id,
+                    channelId: post.ChannelId,
+                    originalMessageId: post.MessageId,
+                    text: post.NormalizedText,
+                    cancellationToken: ct);
+
                 successCount++;
             }
             catch (Exception exception)

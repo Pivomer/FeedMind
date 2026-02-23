@@ -1,4 +1,5 @@
-﻿using FeedMind.Modules.Telegram.Domain.Models;
+﻿using FeedMind.Modules.Telegram.Application.Utils;
+using FeedMind.Modules.Telegram.Domain.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Telegram.Bot;
@@ -6,6 +7,7 @@ using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace FeedMind.Modules.Telegram.Infrastructure.BotApi;
 
@@ -26,7 +28,7 @@ public sealed class BotApiClient
     {
         var receiverOptions = new ReceiverOptions
         {
-            AllowedUpdates = [UpdateType.Message],
+            AllowedUpdates = [UpdateType.Message, UpdateType.CallbackQuery],
             DropPendingUpdates = true,
             Limit = 100
         };
@@ -63,17 +65,27 @@ public sealed class BotApiClient
         return Task.CompletedTask;
     }
 
-    public async Task SendPostToChat(string chatId, TelegramPost postModel, CancellationToken cancellationToken)
+    public async Task<Message> SendPostToChat(string chatId, TelegramPost postModel, CancellationToken cancellationToken)
     {
         try
         {
-            await _botClient.SendMessage(
+            var likeString = CallbackDataParser.Feedback.BuildLike(postModel.MessageId);
+            var dislikeString = CallbackDataParser.Feedback.BuildDislike(postModel.MessageId);
+
+            var inlineKeyboard = new InlineKeyboardMarkup(
+                InlineKeyboardButton.WithCallbackData("👍", likeString),
+                InlineKeyboardButton.WithCallbackData("👎", dislikeString)
+            );
+
+            var message = await _botClient.SendMessage(
                 chatId: chatId,
-                text: postModel.Text,
+                text: postModel.FormattedText,
                 parseMode: ParseMode.Html,
+                replyMarkup: inlineKeyboard,
                 cancellationToken: cancellationToken);
 
-            _logger.LogInformation("Post sent to chat {ChatId}", chatId);
+            _logger.LogInformation("Post sent to chat {ChatId}, BotMessageId {BotMessageId}", chatId, message.Id);
+            return message;
         }
         catch (ApiRequestException exception)
         {

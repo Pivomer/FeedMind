@@ -9,11 +9,13 @@ public sealed class BotUpdateHandler
 {
     private readonly ILogger<BotUpdateHandler> _logger;
     private readonly MessageHandler _messageHandler;
+    private readonly CallbackHandler _callbackHandler;
 
-    public BotUpdateHandler(ILogger<BotUpdateHandler> logger, MessageHandler messageHandler)
+    public BotUpdateHandler(ILogger<BotUpdateHandler> logger, MessageHandler messageHandler, CallbackHandler callbackHandler)
     {
         _logger = logger;
         _messageHandler = messageHandler;
+        _callbackHandler = callbackHandler;
     }
 
     public async Task HandleUpdate(ITelegramBotClient bot, Update update, CancellationToken cancellationToken)
@@ -23,14 +25,10 @@ public sealed class BotUpdateHandler
             switch (update.Type)
             {
                 case UpdateType.Message when update.Message is { } message:
-                    await _messageHandler.HandleMessage(bot, message, cancellationToken);
+                    await _messageHandler.Handle(bot, message, cancellationToken);
                     break;
                 case UpdateType.CallbackQuery when update.CallbackQuery is { } callback:
-                    await bot.AnswerCallbackQuery(
-                        callbackQueryId: callback.Id,
-                        text: "Feature not implemented yet",
-                        showAlert: false,
-                        cancellationToken: cancellationToken);
+                    await _callbackHandler.Handle(bot, callback, cancellationToken);
                     break;
                 default:
                     _logger.LogWarning("Unhandled update type {UpdateType}", update.Type);

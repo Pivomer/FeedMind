@@ -74,6 +74,11 @@ public sealed class PostConsumerService : BackgroundService
             activity?.SetTag(Tags.MessagingMessageId, message.MessageId.ToString());
 
             var postModel = TelegramMessageMapper.ToTelegramPost(message);
+            if (postModel is null)
+            {
+                _logger.LogWarning("Failed to map raw message {MessageId} to TelegramPost", message.MessageId);
+                return;
+            }
             await _postDispatcher.SendPostToChats(postModel, stoppingToken);
         }
         catch (Exception ex)
