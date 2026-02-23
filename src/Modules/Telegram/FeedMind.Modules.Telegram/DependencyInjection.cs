@@ -56,10 +56,12 @@ public static class TelegramModuleRegistration
             services.AddSingleton<WTelegramClient>();
             services.AddScoped<BotUpdateHandler>();
             services.AddScoped<MessageHandler>();
+            services.AddScoped<CallbackHandler>();
 
             services.AddTelegramHandlers();
             services.AddRepository<UserRepository>(UserRepository.TableName);
             services.AddRepository<SubscriptionRepository>(SubscriptionRepository.TableName);
+            services.AddRepository<MessageRepository>(MessageRepository.TableName);
 
             services.AddSingleton<ChannelSubscriptionManager>();
             services.AddSingleton<TelegramPostDispatcher>();

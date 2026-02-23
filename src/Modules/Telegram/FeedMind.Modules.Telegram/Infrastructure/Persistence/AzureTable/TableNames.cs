@@ -7,6 +7,7 @@ public static class TableNames
     public static string[] GetAllTableNames() =>
     [
         SubscriptionRepository.TableName,
-        UserRepository.TableName
+        UserRepository.TableName,
+        MessageRepository.TableName
     ];
 }

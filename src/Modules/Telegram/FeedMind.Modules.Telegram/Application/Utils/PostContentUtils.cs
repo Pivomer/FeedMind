@@ -7,11 +7,8 @@ public static class PostContentUtils
     private const int MaxContentLength = 800;
     private const int MinLastSpaceSearchThreshold = 40;
 
-    public static string BuildFormattedPostText(string? rawContent, long channelId, int messageId, string linkDisplayText = "Link")
+    public static string BuildFormattedPostText(string text, long channelId, int messageId, string linkDisplayText = "Link")
     {
-        var normalized = NormalizeContent(rawContent ?? string.Empty);
-        var encoded = WebUtility.HtmlEncode(normalized);
-
         var cleanId = Math.Abs(channelId);
         if (cleanId > 1_000_000_000_000)
         {
@@ -19,22 +16,27 @@ public static class PostContentUtils
         }
 
         var url = $"https://t.me/c/{cleanId}/{messageId}";
-        return $"{encoded}\n<a href=\"{url}\">{linkDisplayText}</a>";
-    }
+        var link = $"\n<a href=\"{url}\">{linkDisplayText}</a>";
 
-    public static string NormalizeContent(string? rawText)
-    {
-        var text = (rawText ?? string.Empty).Trim();
         if (text.Length <= MaxContentLength)
         {
-            return text;
+            return text + link;
         }
 
         var cut = text[..MaxContentLength];
         var lastSpaceIndex = cut.LastIndexOfAny([' ', '\n', '\t', '.', ',', '!', '?']);
 
-        return lastSpaceIndex > MinLastSpaceSearchThreshold
+        var normalized = lastSpaceIndex > MinLastSpaceSearchThreshold
             ? string.Concat(cut.AsSpan(0, lastSpaceIndex), "…")
             : cut + "…";
+
+        return normalized + link;
+    }
+
+    public static string NormalizeContent(string? rawText)
+    {
+        var normalised = WebUtility.HtmlEncode(rawText);
+        var text = (normalised ?? string.Empty).Trim();
+        return text;
     }
 }

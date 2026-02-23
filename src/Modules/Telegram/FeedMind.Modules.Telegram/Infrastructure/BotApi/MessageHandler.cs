@@ -22,7 +22,7 @@ public sealed class MessageHandler
         _unsubscribeHandler = unsubscribeHandler;
     }
 
-    public async Task HandleMessage(ITelegramBotClient bot, Message message, CancellationToken cancellationToken)
+    public async Task Handle(ITelegramBotClient bot, Message message, CancellationToken cancellationToken)
     {
         try
         {
