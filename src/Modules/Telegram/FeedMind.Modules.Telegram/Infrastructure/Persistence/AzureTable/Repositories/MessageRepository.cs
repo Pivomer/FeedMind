@@ -20,11 +20,11 @@ public sealed class MessageRepository
         _logger = logger;
     }
 
-    public async Task Save(string userId, int botMessageId, long channelId, int originalMessageId, string text, CancellationToken cancellationToken = default)
+    public async Task Save(string chatId, int botMessageId, long channelId, int originalMessageId, string text, CancellationToken cancellationToken = default)
     {
         var entity = new MessageEntity
         {
-            PartitionKey = userId,
+            PartitionKey = chatId,
             RowKey = botMessageId.ToString(),
             ChannelId = channelId,
             OriginalMessageId = originalMessageId,
@@ -36,22 +36,22 @@ public sealed class MessageRepository
         try
         {
             await _tableClient.AddEntityAsync(entity, cancellationToken);
-            _logger.LogInformation("Saved message: UserId {UserId} BotMessageId {BotMessageId}", userId, botMessageId);
+            _logger.LogInformation("Saved message: ChatId {ChatId} BotMessageId {BotMessageId}", chatId, botMessageId);
         }
-        catch (RequestFailedException ex) when (ex.Status == 409)
+        catch (RequestFailedException exception) when (exception.Status == 409)
         {
-            _logger.LogWarning("Message already exists: UserId {UserId} BotMessageId {BotMessageId}", userId, botMessageId);
+            _logger.LogWarning("Message already exists: ChatId {ChatId} BotMessageId {BotMessageId}", chatId, botMessageId);
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            _logger.LogError(ex, "Failed to save message: UserId {UserId} BotMessageId {BotMessageId}", userId, botMessageId);
+            _logger.LogError(exception, "Failed to save message: ChatId {ChatId} BotMessageId {BotMessageId}", chatId, botMessageId);
             throw;
         }
     }
 
-    public async Task UpdateFeedback(string userId, int botMessageId, MessageFeedback feedback, CancellationToken cancellationToken = default)
+    public async Task UpdateFeedback(long chatId, int botMessageId, MessageFeedback feedback, CancellationToken cancellationToken = default)
     {
-        var partitionKey = userId;
+        var partitionKey = chatId.ToString();
         var rowKey = botMessageId.ToString();
 
         try
@@ -62,19 +62,39 @@ public sealed class MessageRepository
             existing.Feedback = (int)feedback;
 
             await _tableClient.UpdateEntityAsync(existing, existing.ETag, TableUpdateMode.Merge, cancellationToken);
-            _logger.LogInformation("Updated feedback: UserId {UserId} BotMessageId {BotMessageId} Feedback {Feedback}", userId, botMessageId, feedback);
+            _logger.LogInformation("Updated feedback: ChatId {ChatId} BotMessageId {BotMessageId} Feedback {Feedback}", chatId, botMessageId, feedback);
         }
-        catch (RequestFailedException ex) when (ex.Status == 404)
+        catch (RequestFailedException exception) when (exception.Status == 404)
         {
-            _logger.LogWarning("Message not found for feedback update: UserId {UserId} BotMessageId {BotMessageId}", userId, botMessageId);
+            _logger.LogWarning("Message not found for feedback update: ChatId {ChatId} BotMessageId {BotMessageId}", chatId, botMessageId);
         }
-        catch (RequestFailedException ex) when (ex.Status == 412)
+        catch (RequestFailedException exception) when (exception.Status == 412)
         {
-            _logger.LogWarning("ETag conflict while updating feedback: UserId {UserId} BotMessageId {BotMessageId}", userId, botMessageId);
+            _logger.LogWarning("ETag conflict while updating feedback: ChatId {ChatId} BotMessageId {BotMessageId}", chatId, botMessageId);
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            _logger.LogError(ex, "Failed to update feedback: UserId {UserId} BotMessageId {BotMessageId}", userId, botMessageId);
+            _logger.LogError(exception, "Failed to update feedback: ChatId {ChatId} BotMessageId {BotMessageId}", chatId, botMessageId);
+            throw;
+        }
+    }
+
+    public async Task<IReadOnlyList<string>> GetByFeedback(string chatId, long channelId, int feedback, int take, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await _tableClient.QueryAsync<MessageEntity>(x =>
+                    x.PartitionKey == chatId
+                    && x.ChannelId == channelId
+                    && x.Feedback == feedback, cancellationToken: cancellationToken)
+                .OrderByDescending(x => x.SentAt)
+                .Take(take)
+                .Select(x => x.Text)
+                .ToListAsync(cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Failed to get feedback messages: ChatId {ChatId} ChannelId {ChannelId}", chatId, channelId);
             throw;
         }
     }

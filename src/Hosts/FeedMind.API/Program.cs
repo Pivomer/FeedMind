@@ -1,8 +1,10 @@
 ﻿using Azure.Core;
 using Azure.Data.Tables;
 using Azure.Identity;
+using Azure.Messaging.ServiceBus;
 using Azure.Security.KeyVault.Secrets;
 using FeedMind.API.Settings;
+using FeedMind.Modules.Filtering;
 using FeedMind.Modules.Telegram;
 using FeedMind.Modules.Telegram.Settings;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -76,6 +78,8 @@ public static class Program
         builder.Services.AddAzureClients(credentials);
 
         builder.Services.AddTelegramModule(builder.Configuration.GetSection(TelegramModuleRegistration.SectionName), appHome);
+        builder.Services.AddFilteringModule(builder.Configuration.GetSection(FilteringModuleRegistration.SectionName));
+
         builder.Services.ConfigureOpenTelemetry(builder.Configuration, appEnvironment);
 
         var app = builder.Build();
@@ -100,6 +104,12 @@ public static class Program
         services.AddAzureClients(clientBuilder =>
         {
             clientBuilder.UseCredential(credential);
+            clientBuilder.AddClient<ServiceBusClient, ServiceBusClientOptions>((clientOptions, clientCredential, provider) =>
+            {
+                var settings = provider.GetRequiredService<IOptions<AppSettings>>().Value;
+                return new ServiceBusClient(settings.ServiceBusNamespace, clientCredential, clientOptions);
+            });
+
             clientBuilder.AddClient<TableServiceClient, TableClientOptions>((clientOptions, clientCredential, provider) =>
             {
                 var appSettings = provider.GetRequiredService<IOptions<AppSettings>>().Value;
@@ -135,7 +145,8 @@ public static class Program
 
     private static void AddTracing(TracerProviderBuilder tracer)
     {
-        tracer.AddAspNetCoreInstrumentation(x => { x.RecordException = true; });
-        tracer.AddTelegramInstrumentation();
+        tracer.AddAspNetCoreInstrumentation(x => { x.RecordException = true; })
+        .AddTelegramInstrumentation()
+        .AddFilteringInstrumentation();
     }
 }

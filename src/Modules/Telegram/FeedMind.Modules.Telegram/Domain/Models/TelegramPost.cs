@@ -35,4 +35,9 @@ public sealed class TelegramPost
             normalizedText: normalizedContent
         );
     }
+
+    public static TelegramPost FromFiltered(long channelId, int messageId, string normalizedText)
+    {
+        return Create(messageId, channelId, normalizedText);
+    }
 }

@@ -10,8 +10,11 @@ param deploymentDate string = sys.utcNow('yyyy-MM-dd')
 var location = resourceGroup().location
 var containerName = 'feedmind-api'
 var jobName = 'feedmind'
+var filterRequestsQueue = 'sbq-feedmind-ai-telegram-requests'
+var filterResultsQueue = 'sbq-feedmind-ai-telegram-results'
 
 var acrScope = infraScopes.acrScope()
+var serviceBusNamespaceScope = infraScopes.serviceBusNamespace()
 var commonScope = infraScopes.commonScope(env)
 
 var tags = {
@@ -132,6 +135,68 @@ module stRoleAssignment 'br/private:authorization/role-assignments-storage-accou
     roleId: azureRoles.storage.storageTableDataContributor
     storageAccountName: storageAccount.name
     principalType: 'ServicePrincipal'
+  }
+}
+
+module aiFilterRequestsQueue 'br/private:servicebus/servicebus-namespace-queue:v1' = {
+  scope: az.resourceGroup(serviceBusNamespaceScope.resourceGroupName)
+  name: 'aiFilterRequestsQueue'
+  params: {
+    serviceBusNamespaceName: serviceBusNamespaceScope.name
+    serviceBusQueueName: '${filterRequestsQueue}-${env}'
+  }
+}
+
+module aiFilterResultsQueue 'br/private:servicebus/servicebus-namespace-queue:v1' = {
+  scope: az.resourceGroup(serviceBusNamespaceScope.resourceGroupName)
+  name: 'aiFilterResultsQueue'
+  params: {
+    serviceBusNamespaceName: serviceBusNamespaceScope.name
+    serviceBusQueueName: '${filterResultsQueue}-${env}'
+  }
+}
+
+module sbRequestSenderRoleAssignment 'br/private:authorization/role-assignments-servicebus-namespace-queue:v1' = {
+  name: 'sbRequestSenderRoleAssignment'
+  scope: az.resourceGroup(serviceBusNamespaceScope.resourceGroupName)
+  params: {
+    principalId: identity.properties.principalId
+    roleId: azureRoles.integration.azureServiceBusDataSender
+    serviceBusNamespaceName: serviceBusNamespaceScope.name
+    serviceBusQueueName: '${filterRequestsQueue}-${env}'
+  }
+}
+
+module sbRequestReceiverRoleAssignment 'br/private:authorization/role-assignments-servicebus-namespace-queue:v1' = {
+  name: 'sbRequestReceiverRoleAssignment'
+  scope: az.resourceGroup(serviceBusNamespaceScope.resourceGroupName)
+  params: {
+    principalId: identity.properties.principalId
+    roleId: azureRoles.integration.azureServiceBusDataReceiver
+    serviceBusNamespaceName: serviceBusNamespaceScope.name
+    serviceBusQueueName: '${filterRequestsQueue}-${env}'
+  }
+}
+
+module sbResultSenderRoleAssignment 'br/private:authorization/role-assignments-servicebus-namespace-queue:v1' = {
+  name: 'sbResultSenderRoleAssignment'
+  scope: az.resourceGroup(serviceBusNamespaceScope.resourceGroupName)
+  params: {
+    principalId: identity.properties.principalId
+    roleId: azureRoles.integration.azureServiceBusDataSender
+    serviceBusNamespaceName: serviceBusNamespaceScope.name
+    serviceBusQueueName: '${filterResultsQueue}-${env}'
+  }
+}
+
+module sbResultReceiverRoleAssignment 'br/private:authorization/role-assignments-servicebus-namespace-queue:v1' = {
+  name: 'sbResultReceiverRoleAssignment'
+  scope: az.resourceGroup(serviceBusNamespaceScope.resourceGroupName)
+  params: {
+    principalId: identity.properties.principalId
+    roleId: azureRoles.integration.azureServiceBusDataReceiver
+    serviceBusNamespaceName: serviceBusNamespaceScope.name
+    serviceBusQueueName: '${filterResultsQueue}-${env}'
   }
 }
 

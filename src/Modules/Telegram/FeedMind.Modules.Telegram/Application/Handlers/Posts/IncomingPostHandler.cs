@@ -31,7 +31,7 @@ public sealed class IncomingPostHandler
             await _subscriptionRepository.Subscribe(model.ChatId, model.ChannelId, model.ChannelName, model.Title, cancellationToken);
             await _subscriptionManager.Sync(cancellationToken);
 
-            _logger.LogInformation("User {ChatId} subscribed to channel {ChannelId}", model.ChatId, model.ChannelId);
+            _logger.LogInformation("ChatId {ChatId} subscribed to channel {ChannelId}", model.ChatId, model.ChannelId);
         }
         catch (Exception ex)
         {

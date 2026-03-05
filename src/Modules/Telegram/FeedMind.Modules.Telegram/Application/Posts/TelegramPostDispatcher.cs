@@ -1,7 +1,10 @@
 ﻿using System.Diagnostics;
+using FeedMind.Modules.Filtering.Contracts;
+using FeedMind.Modules.Telegram.Application.Filtering;
 using FeedMind.Modules.Telegram.Domain.Models;
 using FeedMind.Modules.Telegram.Infrastructure.BotApi;
 using FeedMind.Modules.Telegram.Infrastructure.Persistence.AzureTable.Repositories;
+using FeedMind.Modules.Telegram.Infrastructure.ServiceBus;
 using Microsoft.Extensions.Logging;
 using static FeedMind.Modules.Telegram.Telemetry;
 
@@ -11,70 +14,82 @@ public sealed class TelegramPostDispatcher
 {
     private readonly ILogger<TelegramPostDispatcher> _logger;
     private readonly SubscriptionRepository _subscriptions;
+    private readonly FilterRequestBuilder _filterRequestBuilder;
+    private readonly ServiceBusPublisher _serviceBusPublisher;
     private readonly MessageRepository _messages;
     private readonly BotApiClient _botApiClient;
 
-    public TelegramPostDispatcher(ILogger<TelegramPostDispatcher> logger, SubscriptionRepository subscriptions, MessageRepository messages, BotApiClient botApiClient)
+    public TelegramPostDispatcher(
+        ILogger<TelegramPostDispatcher> logger,
+        SubscriptionRepository subscriptions,
+        FilterRequestBuilder filterRequestBuilder,
+        ServiceBusPublisher serviceBusPublisher,
+        MessageRepository messages,
+        BotApiClient botApiClient)
     {
         _logger = logger;
         _subscriptions = subscriptions;
+        _filterRequestBuilder = filterRequestBuilder;
+        _serviceBusPublisher = serviceBusPublisher;
         _messages = messages;
         _botApiClient = botApiClient;
     }
 
-    public async Task SendPostToChats(TelegramPost post, CancellationToken ct)
+    public async Task Dispatch(TelegramPost postModel, CancellationToken stoppingToken)
     {
-        var successCount = 0;
-        var errors = new List<string>();
-        var channelId = post.ChannelId.ToString();
-        var chatIds = await _subscriptions.GetActiveChatIdsByChannel(channelId, ct);
-
-        using var dispatchActivity = Source.StartActivity("PostDispatch", ActivityKind.Producer);
-        dispatchActivity?.SetTag(Tags.MessagingSystem, "telegram");
-        dispatchActivity?.SetTag(Tags.MessagingOperation, "publish");
-        dispatchActivity?.SetTag(Tags.MessagingDestinationName, "telegram-chats");
-        dispatchActivity?.SetTag("telegram.channel_id", channelId);
-        dispatchActivity?.SetTag("telegram.total_chats", chatIds.Count);
+        var channelId = postModel.ChannelId;
+        var chatIds = await _subscriptions.GetActiveChatIdsByChannel(channelId, stoppingToken);
 
         foreach (var chatId in chatIds)
         {
-            using var chatActivity = Source.StartActivity("PostDispatchToChat", ActivityKind.Producer, dispatchActivity?.Context ?? default);
-            chatActivity?.SetTag(Tags.MessagingDestinationName, chatId);
-            chatActivity?.SetTag(Tags.MessagingOperation, "publish");
-            try
-            {
-                var message = await _botApiClient.SendPostToChat(chatId, post, ct);
-                await _messages.Save(
-                    userId: chatId,
-                    botMessageId: message.Id,
-                    channelId: post.ChannelId,
-                    originalMessageId: post.MessageId,
-                    text: post.NormalizedText,
-                    cancellationToken: ct);
+            var filterRequest = await _filterRequestBuilder.Build(
+                chatId: chatId,
+                channelId: channelId,
+                messageId: postModel.MessageId,
+                text: postModel.NormalizedText,
+                ct: stoppingToken);
 
-                successCount++;
-            }
-            catch (Exception exception)
-            {
-                chatActivity?.SetStatus(ActivityStatusCode.Error, exception.Message);
-                chatActivity?.AddException(exception);
+            await _serviceBusPublisher.Publish(filterRequest, stoppingToken);
+        }
+    }
 
-                var error = $"Chat {chatId}: {exception.Message}";
-                errors.Add(error);
-                _logger.LogError(exception, "Failed to send post to chat {ChatId}", chatId);
-            }
+    public async Task Deliver(TelegramFilterResult result, CancellationToken cancellationToken)
+    {
+        if (!result.ShouldShow)
+        {
+            _logger.LogInformation("Post {MessageId} hidden for ChatId {ChatId}. Reason: {Reason}", result.MessageId, result.ChatId, result.Reason);
+            return;
         }
 
-        var failureCount = chatIds.Count - successCount;
-        if (successCount == 0 && failureCount != 0)
-        {
-            var errorSummary = string.Join("; ", errors);
-            throw new InvalidOperationException($"Failed to send post to all {failureCount} configured chat(s). Errors: {errorSummary}");
-        }
+        var post = TelegramPost.FromFiltered(
+            channelId: result.ChannelId,
+            messageId: result.MessageId,
+            normalizedText: result.Text);
 
-        if (failureCount > 0)
+        using var activity = Source.StartActivity(Operations.PostDeliver, ActivityKind.Consumer);
+        activity?.SetTag(Tags.MessagingSystem, "telegram");
+        activity?.SetTag(Tags.MessagingOperation, "publish");
+        activity?.SetTag(Tags.TelegramChannelId, result.ChannelId);
+        activity?.SetTag(Tags.TelegramChatId, result.ChatId);
+
+        try
         {
-            _logger.LogWarning("Post sent partially: {SuccessCount}/{TotalCount} chats succeeded, {FailureCount} failed", successCount, chatIds.Count, failureCount);
+            var chatId = result.ChatId;
+            var message = await _botApiClient.SendPostToChat(chatId, post, cancellationToken);
+            await _messages.Save(
+                chatId: chatId,
+                botMessageId: message.Id,
+                channelId: post.ChannelId,
+                originalMessageId: post.MessageId,
+                text: post.NormalizedText,
+                cancellationToken: cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            activity?.SetStatus(ActivityStatusCode.Error, exception.Message);
+            activity?.AddException(exception);
+            _logger.LogError(exception, "Failed to deliver post {MessageId} to chat {ChatId}", result.MessageId, result.ChatId);
+            throw;
         }
     }
 }

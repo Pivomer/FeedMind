@@ -2,6 +2,7 @@
 using Azure.Data.Tables;
 using Azure.Security.KeyVault.Secrets;
 using FeedMind.Modules.Telegram.Application.Channels;
+using FeedMind.Modules.Telegram.Application.Filtering;
 using FeedMind.Modules.Telegram.Application.Handlers.Commands;
 using FeedMind.Modules.Telegram.Application.Handlers.Posts;
 using FeedMind.Modules.Telegram.Application.Posts;
@@ -9,6 +10,7 @@ using FeedMind.Modules.Telegram.Domain.Models;
 using FeedMind.Modules.Telegram.DTOs.Incoming;
 using FeedMind.Modules.Telegram.Infrastructure.BotApi;
 using FeedMind.Modules.Telegram.Infrastructure.Persistence.AzureTable.Repositories;
+using FeedMind.Modules.Telegram.Infrastructure.ServiceBus;
 using FeedMind.Modules.Telegram.Infrastructure.Wclient;
 using FeedMind.Modules.Telegram.Infrastructure.Wclient.Handlers;
 using FeedMind.Modules.Telegram.Services.Background;
@@ -65,11 +67,14 @@ public static class TelegramModuleRegistration
 
             services.AddSingleton<ChannelSubscriptionManager>();
             services.AddSingleton<TelegramPostDispatcher>();
+            services.AddSingleton<FilterRequestBuilder>();
+            services.AddSingleton<ServiceBusPublisher>();
 
             services.AddHostedService<ChannelFeedListenerService>();
             services.AddHostedService<BotPollingService>();
             services.AddHostedService<PostConsumerService>();
             services.AddHostedService<TableInitializerService>();
+            services.AddHostedService<AiFilterResultsConsumerService>();
 
             services.AddSingleton<WorkerStates>();
             services.AddHealthChecks().AddCheck<WorkersHealthCheck>("workers");

@@ -22,11 +22,11 @@ public sealed class CallbackHandler
     public async Task Handle(ITelegramBotClient bot, CallbackQuery callback, CancellationToken cancellationToken)
     {
         var data = callback.Data;
-        var userId = callback.From.Id.ToString();
 
         if (callback.Message is not { } message)
         {
-            _logger.LogWarning("Received callback with missing message. UserId {UserId}", userId);
+            var chatId = callback.From.Id.ToString();
+            _logger.LogWarning("Received callback with missing message. ChatId {ChatId}", chatId);
             await bot.AnswerCallbackQuery(callback.Id, cancellationToken: cancellationToken);
             return;
         }
@@ -34,7 +34,7 @@ public sealed class CallbackHandler
         switch (CallbackDataParser.Parse(data))
         {
             case CallbackData.Feedback feedback:
-                await HandleFeedback(bot, message, userId, feedback, cancellationToken);
+                await HandleFeedback(bot, message, feedback, cancellationToken);
                 break;
             default:
                 _logger.LogWarning("Unknown callback data: {Data}", data);
@@ -43,10 +43,10 @@ public sealed class CallbackHandler
         }
     }
 
-    private async Task HandleFeedback(ITelegramBotClient bot, Message botMessage, string userId, CallbackData.Feedback feedback, CancellationToken cancellationToken)
+    private async Task HandleFeedback(ITelegramBotClient bot, Message botMessage, CallbackData.Feedback feedback, CancellationToken cancellationToken)
     {
         var chatId = botMessage.Chat.Id;
-        await _messages.UpdateFeedback(userId, botMessage.Id, feedback.Feed, cancellationToken);
+        await _messages.UpdateFeedback(chatId, botMessage.Id, feedback.Feed, cancellationToken);
 
         var likeString = CallbackDataParser.Feedback.BuildLike(feedback.MessageId);
         var dislikeString = CallbackDataParser.Feedback.BuildDislike(feedback.MessageId);
@@ -61,6 +61,6 @@ public sealed class CallbackHandler
             messageId: botMessage.Id,
             replyMarkup: updatedKeyboard,
             cancellationToken: cancellationToken);
-        _logger.LogInformation("Feedback {Feedback} saved. UserId {UserId} BotMessageId {BotMessageId}", feedback, userId, feedback.MessageId);
+        _logger.LogInformation("Feedback {Feedback} saved. ChatId {ChatId} BotMessageId {BotMessageId}", feedback, chatId, feedback.MessageId);
     }
 }

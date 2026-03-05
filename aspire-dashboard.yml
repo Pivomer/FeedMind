@@ -4,3 +4,6 @@ services:
     ports:
       - "18888:18888"
       - "4317:18889"
+    environment:
+      - DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS=true
+      - ASPIRE_DASHBOARD_TELEMETRY_OPTOUT=true
