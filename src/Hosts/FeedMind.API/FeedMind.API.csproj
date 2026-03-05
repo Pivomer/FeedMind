@@ -24,6 +24,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\..\Modules\Filtering\FeedMind.Modules.Filtering\FeedMind.Modules.Filtering.csproj" />
       <ProjectReference Include="..\..\Modules\Telegram\FeedMind.Modules.Telegram\FeedMind.Modules.Telegram.csproj" />
     </ItemGroup>
 

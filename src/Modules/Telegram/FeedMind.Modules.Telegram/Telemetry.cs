@@ -11,6 +11,8 @@ public static class Telemetry
     {
         tracer.AddHttpClientInstrumentation(x =>
         {
+            x.FilterHttpRequestMessage = request => !(request.RequestUri?.Host == "api.telegram.org" && request.RequestUri?.AbsolutePath.Contains("getUpdates") == true);
+
             x.EnrichWithHttpRequestMessage = (activity, request) =>
             {
                 if (request.RequestUri?.Host == "api.telegram.org")
@@ -23,11 +25,20 @@ public static class Telemetry
         return tracer;
     }
 
+    public static class TraceContext
+    {
+        public const string TraceParent = "traceparent";
+        public const string TraceState = "tracestate";
+    }
+
     public static class Operations
     {
         public const string TelegramMessageReceive = "telegram.message.receive";
         public const string InternalMessageProcess = "internal.message.process";
         public const string MessageHandle = "message.handle";
+        public const string FilterRequestPublish = "servicebus.filter.request.publish";
+        public const string FilterResultProcess = "servicebus.filter.result.process";
+        public const string PostDeliver = "telegram.post.deliver";
     }
 
     public static class Tags

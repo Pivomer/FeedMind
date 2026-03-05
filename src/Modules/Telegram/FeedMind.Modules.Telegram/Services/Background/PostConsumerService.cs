@@ -79,12 +79,12 @@ public sealed class PostConsumerService : BackgroundService
                 _logger.LogWarning("Failed to map raw message {MessageId} to TelegramPost", message.MessageId);
                 return;
             }
-            await _postDispatcher.SendPostToChats(postModel, stoppingToken);
+            await _postDispatcher.Dispatch(postModel, stoppingToken);
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-            activity?.AddException(ex);
+            activity?.SetStatus(ActivityStatusCode.Error, exception.Message);
+            activity?.AddException(exception);
             throw;
         }
     }

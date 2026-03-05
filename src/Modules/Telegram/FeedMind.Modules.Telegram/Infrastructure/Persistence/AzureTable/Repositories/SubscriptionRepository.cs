@@ -169,11 +169,12 @@ public sealed class SubscriptionRepository
         _logger.LogInformation("Channel {ChannelName} hard-removed from {Count} subscriptions", channelName, count);
     }
 
-    public async Task<HashSet<string>> GetActiveChatIdsByChannel(string channelId, CancellationToken cancellationToken)
+    public async Task<HashSet<string>> GetActiveChatIdsByChannel(long channelId, CancellationToken cancellationToken)
     {
         var result = new HashSet<string>();
+        var rowKey = channelId.ToString();
 
-        await foreach (var entity in _tableClient.QueryAsync<SubscriptionEntity>(x => x.IsActive && x.RowKey == channelId, select: ["PartitionKey"], cancellationToken: cancellationToken))
+        await foreach (var entity in _tableClient.QueryAsync<SubscriptionEntity>(x => x.IsActive && x.RowKey == rowKey, select: ["PartitionKey"], cancellationToken: cancellationToken))
         {
             result.Add(entity.PartitionKey);
         }

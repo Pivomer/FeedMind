@@ -17,11 +17,19 @@ var containerRegistryScope resourceScope = {
   resourceGroupName: 'rg-pvm-shared'
 }
 
+var serviceBusNamespaceScope resourceScope = {
+  name: 'sbns-pvm-shared'
+  resourceGroupName: 'rg-pvm-shared'
+}
+
 @export()
 func commonScope(env envType) commonScopeType => createCommonScope(env)
 
 @export()
 func acrScope() resourceScope => containerRegistryScope
+
+@export()
+func serviceBusNamespace() resourceScope => serviceBusNamespaceScope
 
 func commonResourceGroupName(env envType) string => 'rg-pvm-common-${env}'
 

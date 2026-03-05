@@ -1,10 +1,15 @@
 <Solution>
     <Folder Name="/Hosts/">
-        <Project Path="src\Hosts\FeedMind.API\FeedMind.API.csproj" Type="C#" />
+        <Project Path="src\Hosts\FeedMind.API\FeedMind.API.csproj" />
     </Folder>
     <Folder Name="/Modules/" />
+    <Folder Name="/Modules/Filtering/">
+        <Project Path="src/Modules/Filtering/FeedMind.Modules.Filtering.Contracts/FeedMind.Modules.Filtering.Contracts.csproj" />
+        <Project Path="src/Modules/Filtering/FeedMind.Modules.Filtering/FeedMind.Modules.Filtering.csproj" />
+    </Folder>
     <Folder Name="/Modules/Telegram/">
-        <Project Path="src\Modules\Telegram\FeedMind.Modules.Telegram\FeedMind.Modules.Telegram.csproj" Type="C#" />
+        <Project Path="src/Modules/Telegram/FeedMind.Modules.Telegram.Contracts/FeedMind.Modules.Telegram.Contracts.csproj" />
+        <Project Path="src\Modules\Telegram\FeedMind.Modules.Telegram\FeedMind.Modules.Telegram.csproj" />
     </Folder>
     <Folder Name="/UnitTests/">
         <Project Path="src/UnitTests/UnitTests/UnitTests.csproj" />
