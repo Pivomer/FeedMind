@@ -16,6 +16,7 @@ var filterResultsQueue = 'sbq-feedmind-ai-telegram-results'
 var acrScope = infraScopes.acrScope()
 var serviceBusNamespaceScope = infraScopes.serviceBusNamespace()
 var commonScope = infraScopes.commonScope(env)
+var openAiScope = infraScopes.openAi()
 
 var tags = {
   createdBy: 'DevOps'
@@ -197,6 +198,16 @@ module sbResultReceiverRoleAssignment 'br/private:authorization/role-assignments
     roleId: azureRoles.integration.azureServiceBusDataReceiver
     serviceBusNamespaceName: serviceBusNamespaceScope.name
     serviceBusQueueName: '${filterResultsQueue}-${env}'
+  }
+}
+
+module openAiRoleAssignment 'br/private:authorization/role-assignments-openai:v1' = {
+  name: 'openAiRoleAssignment'
+  scope: az.resourceGroup(openAiScope.resourceGroupName)
+  params: {
+    principalId: identity.properties.principalId
+    roleId: azureRoles.ai.cognitiveServicesOpenAiUser
+    openAiName: openAiScope.name
   }
 }
 

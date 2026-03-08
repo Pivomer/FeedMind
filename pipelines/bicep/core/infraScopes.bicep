@@ -22,6 +22,11 @@ var serviceBusNamespaceScope resourceScope = {
   resourceGroupName: 'rg-pvm-shared'
 }
 
+var openAiScope resourceScope = {
+  name: 'oai-pvm-shared'
+  resourceGroupName: 'rg-pvm-shared'
+}
+
 @export()
 func commonScope(env envType) commonScopeType => createCommonScope(env)
 
@@ -30,6 +35,9 @@ func acrScope() resourceScope => containerRegistryScope
 
 @export()
 func serviceBusNamespace() resourceScope => serviceBusNamespaceScope
+
+@export()
+func openAi() resourceScope => openAiScope
 
 func commonResourceGroupName(env envType) string => 'rg-pvm-common-${env}'
 

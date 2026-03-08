@@ -1,4 +1,5 @@
-﻿using Azure.Core;
+﻿using Azure.AI.OpenAI;
+using Azure.Core;
 using Azure.Data.Tables;
 using Azure.Identity;
 using Azure.Messaging.ServiceBus;
@@ -120,6 +121,11 @@ public static class Program
             {
                 var appSettings = provider.GetRequiredService<IOptions<AppSettings>>().Value;
                 return new SecretClient(new Uri(appSettings.KeyVaultUri), clientCredential, clientOptions);
+            });
+            clientBuilder.AddClient<AzureOpenAIClient, AzureOpenAIClientOptions>((clientOptions, clientCredential, provider) =>
+            {
+                var settings = provider.GetRequiredService<IOptions<AppSettings>>().Value;
+                return new AzureOpenAIClient(new Uri(settings.OpenAiEndpoint), clientCredential, clientOptions);
             });
         });
     }

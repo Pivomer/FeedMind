@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 using Azure.Messaging.ServiceBus;
-using FeedMind.Modules.Filtering.Application.Handlers;
+using FeedMind.Modules.Filtering.Application.Telegram;
 using FeedMind.Modules.Filtering.Infrastructure.ServiceBus;
 using FeedMind.Modules.Filtering.Services.Health;
 using FeedMind.Modules.Filtering.Settings;
