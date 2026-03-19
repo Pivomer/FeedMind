@@ -14,4 +14,7 @@ var azureRoles = {
   storage: {
     storageTableDataContributor: '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'
   }
+  ai: {
+    cognitiveServicesOpenAiUser: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
+  }
 }

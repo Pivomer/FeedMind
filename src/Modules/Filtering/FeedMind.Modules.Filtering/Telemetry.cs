@@ -35,5 +35,6 @@ public static class Telemetry
         public const string TelegramFilterChatId = "telegram.filter.chat_id";
         public const string TelegramFilterChannelId = "telegram.filter.channel_id";
         public const string TelegramFilterDecision = "telegram.filter.decision";
+        public const string TelegramFilterReason = "telegram.filter.reason";
     }
 }

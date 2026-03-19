@@ -13,6 +13,9 @@ public sealed class AppSettings
     [Required]
     public required string ServiceBusNamespace { get; init; }
 
+    [Required]
+    public required string OpenAiEndpoint { get; init; }
+
     private const string LocalEnvironmentName = "local";
     public const string SectionName = "AppSettings";
 

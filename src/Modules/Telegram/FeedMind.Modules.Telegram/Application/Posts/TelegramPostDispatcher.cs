@@ -55,12 +55,6 @@ public sealed class TelegramPostDispatcher
 
     public async Task Deliver(TelegramFilterResult result, CancellationToken cancellationToken)
     {
-        if (!result.ShouldShow)
-        {
-            _logger.LogInformation("Post {MessageId} hidden for ChatId {ChatId}. Reason: {Reason}", result.MessageId, result.ChatId, result.Reason);
-            return;
-        }
-
         var post = TelegramPost.FromFiltered(
             channelId: result.ChannelId,
             messageId: result.MessageId,
@@ -75,7 +69,8 @@ public sealed class TelegramPostDispatcher
         try
         {
             var chatId = result.ChatId;
-            var message = await _botApiClient.SendPostToChat(chatId, post, cancellationToken);
+            var message = await _botApiClient.SendPostToChat(chatId, post, result.ShouldShow, result.Reason, cancellationToken);
+
             await _messages.Save(
                 chatId: chatId,
                 botMessageId: message.Id,
