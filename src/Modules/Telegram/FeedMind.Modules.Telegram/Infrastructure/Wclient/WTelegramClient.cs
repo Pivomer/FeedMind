@@ -13,16 +13,15 @@ namespace FeedMind.Modules.Telegram.Infrastructure.Wclient;
 public sealed record TelegramTransientError(Exception Exception);
 public sealed record TelegramFatalError(Exception Exception);
 
-public sealed class WTelegramClient
+public sealed class WTelegramClient : IAsyncDisposable
 {
     private readonly ILogger<WTelegramClient> _logger;
-
     private readonly JoinChannelErrorHandler _joinChannelErrorHandler;
     private readonly Lazy<Task<Client>> _client;
+    private Client? _initializedClient;
     private bool _subscribed;
     private readonly SemaphoreSlim _channelLock = new(1, 1);
     private readonly ConcurrentDictionary<long, InputPeerChannel> _channelPeers = new();
-
 
     public event Func<Message, Task>? OnMessageReceived;
     public event Action<TelegramTransientError>? OnTransientError;
@@ -41,7 +40,7 @@ public sealed class WTelegramClient
         _client = InitClient(secretClient, sessionManager, settings);
     }
 
-    private static Lazy<Task<Client>> InitClient(SecretClient secretClient, SessionManager sessionManager, TelegramSettings settings)
+    private Lazy<Task<Client>> InitClient(SecretClient secretClient, SessionManager sessionManager, TelegramSettings settings)
     {
         return new Lazy<Task<Client>>(async () =>
         {
@@ -52,7 +51,9 @@ public sealed class WTelegramClient
                 var phoneNumber = secretClient.GetSecret(settings.PhoneNumber).Value.Value;
                 var session = sessionManager.GetSessionPath();
 
-                return await CreateClient(apiId, apiHash, phoneNumber, session);
+                var client = await CreateClient(apiId, apiHash, phoneNumber, session);
+                _initializedClient = client;
+                return client;
             }
             catch (Exception exception)
             {
@@ -106,7 +107,7 @@ public sealed class WTelegramClient
         }
         catch (Exception exception)
         {
-            _logger.LogCritical(exception, "Failed to subscribe Telegram updates");
+            _logger.LogCritical(exception, "Failed to join channel");
             throw;
         }
         finally
@@ -115,8 +116,29 @@ public sealed class WTelegramClient
         }
     }
 
-    private static async Task<Client> CreateClient(string apiId, string apiHash, string phoneNumber, string? sessionPath)
+    public async ValueTask DisposeAsync()
     {
+        if (_initializedClient is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _initializedClient.DisposeAsync();
+            _logger.LogInformation("WTelegram Client disposed, session file released");
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(exception, "Error disposing WTelegram Client");
+        }
+
+        await ValueTask.CompletedTask;
+    }
+
+    private static async Task<Client> CreateClient(string apiId, string apiHash, string phoneNumber, string sessionPath)
+    {
+        var sessionStore = new MemorySessionStore(sessionPath);
         var client = new Client(what =>
         {
             return what switch
@@ -124,10 +146,9 @@ public sealed class WTelegramClient
                 "api_id" => apiId,
                 "api_hash" => apiHash,
                 "phone_number" => phoneNumber,
-                "session_pathname" => sessionPath,
                 _ => null
             };
-        });
+        }, sessionStore);
 
         await client.LoginUserIfNeeded();
         return client;
@@ -182,7 +203,6 @@ public sealed class WTelegramClient
         {
             _logger.LogError(exception, "Error in OnMessageReceived handler");
         }
-
     }
 
     private async Task MarkChannelHistoryAsRead(PeerChannel peerChannel)
