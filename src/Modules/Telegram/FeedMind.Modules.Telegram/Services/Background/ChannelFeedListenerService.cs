@@ -120,6 +120,7 @@ public sealed class ChannelFeedListenerService : BackgroundService
         _telegramClient.OnTransientError -= _transientErrorHandler;
         _telegramClient.OnFatalError -= _fatalErrorHandler;
 
+        await _telegramClient.DisposeAsync();
         await base.StopAsync(cancellationToken);
     }
 }
