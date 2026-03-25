@@ -46,6 +46,7 @@ public sealed class ChannelFeedListenerService : BackgroundService
         {
             RegisterHealthHooks();
             await _channelSubscriptionManager.InitializeListeningChannels(stoppingToken);
+            await _channelSubscriptionManager.Sync(stoppingToken);
             await StartListener();
             await Task.Delay(Timeout.Infinite, stoppingToken);
         }
