@@ -115,13 +115,18 @@ public sealed class ChannelFeedListenerService : BackgroundService
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("ChannelFeedListenerService stopping");
+        _logger.LogInformation("ChannelFeedListenerService StopAsync called");
 
         _telegramClient.OnMessageReceived -= MessageReceived;
         _telegramClient.OnTransientError -= _transientErrorHandler;
         _telegramClient.OnFatalError -= _fatalErrorHandler;
 
+        _logger.LogInformation("ChannelFeedListenerService unsubscribed, calling DisposeAsync");
         await _telegramClient.DisposeAsync();
+
+        _logger.LogInformation("ChannelFeedListenerService DisposeAsync completed");
         await base.StopAsync(cancellationToken);
+
+        _logger.LogInformation("ChannelFeedListenerService StopAsync completed");
     }
 }

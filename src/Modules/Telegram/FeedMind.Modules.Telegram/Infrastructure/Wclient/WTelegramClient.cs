@@ -120,17 +120,19 @@ public sealed class WTelegramClient : IAsyncDisposable
     {
         if (_initializedClient is null)
         {
+            _logger.LogWarning("WTelegramClient DisposeAsync called but client was never initialized");
             return;
         }
 
         try
         {
+            _logger.LogInformation("WTelegramClient start disposing");
             await _initializedClient.DisposeAsync();
-            _logger.LogInformation("WTelegram Client disposed, session file released");
+            _logger.LogInformation("WTelegramClient disposed successfully");
         }
         catch (Exception exception)
         {
-            _logger.LogWarning(exception, "Error disposing WTelegram Client");
+            _logger.LogWarning(exception, "WTelegramClient error during dispose");
         }
 
         await ValueTask.CompletedTask;
@@ -138,20 +140,37 @@ public sealed class WTelegramClient : IAsyncDisposable
 
     private static async Task<Client> CreateClient(string apiId, string apiHash, string phoneNumber, string sessionPath)
     {
-        var sessionStore = new MemorySessionStore(sessionPath);
+        var initialBytes = File.Exists(sessionPath) ? await File.ReadAllBytesAsync(sessionPath) : [];
+
         var client = new Client(what =>
-        {
-            return what switch
             {
-                "api_id" => apiId,
-                "api_hash" => apiHash,
-                "phone_number" => phoneNumber,
-                _ => null
-            };
-        }, sessionStore);
+                return what switch
+                {
+                    "api_id" => apiId,
+                    "api_hash" => apiHash,
+                    "phone_number" => phoneNumber,
+                    "verification_code" => GetVerificationCode(),
+                    _ => null
+                };
+            },
+            startSession: initialBytes,
+            saveSession: bytes => File.WriteAllBytes(sessionPath, bytes)
+        );
 
         await client.LoginUserIfNeeded();
         return client;
+    }
+
+    private static string GetVerificationCode()
+    {
+        var code = Environment.GetEnvironmentVariable("TELEGRAM_VERIFICATION_CODE");
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            Thread.Sleep(Timeout.Infinite);
+            throw new InvalidOperationException("Verification code not found in environment variables");
+        }
+
+        return code;
     }
 
     private async Task ClientOnUpdate(Update update)
