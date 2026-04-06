@@ -29,6 +29,8 @@ public sealed class JoinChannelErrorHandler
 
             var msg when msg.Contains(TelegramErrorMessages.InviteRequestSent) => new JoinChannelInfo.InviteRequestSent(),
 
+            var msg when msg.Contains(TelegramErrorMessages.FloodWait) => new JoinChannelInfo.FloodWait(TelegramErrorAnalyzer.ParseFloodWaitSeconds(exception)),
+
             _ => HandleGenericError(exception, channelName, onError)
         };
     }

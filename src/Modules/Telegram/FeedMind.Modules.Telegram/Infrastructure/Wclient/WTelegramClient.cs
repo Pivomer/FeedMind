@@ -138,34 +138,47 @@ public sealed class WTelegramClient : IAsyncDisposable
         await ValueTask.CompletedTask;
     }
 
-    private static async Task<Client> CreateClient(string apiId, string apiHash, string phoneNumber, string sessionPath)
+    private async Task<Client> CreateClient(string apiId, string apiHash, string phoneNumber, string sessionPath)
     {
         var initialBytes = File.Exists(sessionPath) ? await File.ReadAllBytesAsync(sessionPath) : [];
 
-        var client = new Client(what =>
+        while (true)
+        {
+            try
             {
-                return what switch
-                {
-                    "api_id" => apiId,
-                    "api_hash" => apiHash,
-                    "phone_number" => phoneNumber,
-                    "verification_code" => GetVerificationCode(),
-                    _ => null
-                };
-            },
-            startSession: initialBytes,
-            saveSession: bytes => File.WriteAllBytes(sessionPath, bytes)
-        );
+                var client = new Client(what =>
+                    {
+                        return what switch
+                        {
+                            "api_id" => apiId,
+                            "api_hash" => apiHash,
+                            "phone_number" => phoneNumber,
+                            "verification_code" => GetVerificationCode(),
+                            _ => null
+                        };
+                    },
+                    startSession: initialBytes,
+                    saveSession: bytes => File.WriteAllBytes(sessionPath, bytes)
+                );
 
-        await client.LoginUserIfNeeded();
-        return client;
+                await client.LoginUserIfNeeded();
+                return client;
+            }
+            catch (RpcException exception) when (exception.Code == 420)
+            {
+                var waitSeconds = TelegramErrorAnalyzer.ParseFloodWaitSeconds(exception) + TelegramErrorAnalyzer.FloodWaitBufferSeconds;
+                _logger.LogCritical("FLOOD_WAIT {Seconds}s during login — waiting full duration", waitSeconds);
+                await Task.Delay(TimeSpan.FromSeconds(waitSeconds));
+            }
+        }
     }
 
-    private static string GetVerificationCode()
+    private string GetVerificationCode()
     {
         var code = Environment.GetEnvironmentVariable("TELEGRAM_VERIFICATION_CODE");
         if (string.IsNullOrWhiteSpace(code))
         {
+            _logger.LogCritical("TELEGRAM_VERIFICATION_CODE not set. Application suspended, waiting for manual intervention");
             Thread.Sleep(Timeout.Infinite);
             throw new InvalidOperationException("Verification code not found in environment variables");
         }
