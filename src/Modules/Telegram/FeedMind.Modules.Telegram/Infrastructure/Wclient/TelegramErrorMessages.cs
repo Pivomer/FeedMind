@@ -7,6 +7,7 @@ public static class TelegramErrorMessages
     public const string MsgIdInvalid = "MSG_ID_INVALID";
     public const string ChannelInvalid = "CHANNEL_INVALID";
     public const string ChannelPrivate= "CHANNEL_PRIVATE";
+    public const string FloodWait = "FLOOD_WAIT";
 
     //channels.leaveChannel
     public const string ChannelPublicGroupNa = "CHANNEL_PUBLIC_GROUP_NA";

@@ -12,7 +12,7 @@ public abstract record JoinChannelInfo
 
     public sealed record InvalidChannel : JoinChannelInfo;
 
-    public sealed record RateLimited(TimeSpan? RetryAfter = null) : JoinChannelInfo;
+    public sealed record FloodWait(int WaitSeconds) : JoinChannelInfo;
 
     public sealed record InviteRequestSent : JoinChannelInfo;
 

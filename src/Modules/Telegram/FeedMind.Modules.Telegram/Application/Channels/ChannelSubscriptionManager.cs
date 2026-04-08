@@ -84,10 +84,10 @@ public sealed class ChannelSubscriptionManager
                         await RemoveChannel(channelName, cancellationToken);
                         break;
 
-                    case JoinChannelInfo.RateLimited rateLimited:
-                        _logger.LogWarning("Rate limited on channel {Channel}, retry after {Retry}", channelName, rateLimited.RetryAfter);
-                        await RemoveChannel(channelName, cancellationToken);
-                        break;
+                    case JoinChannelInfo.FloodWait rateLimited:
+                        _logger.LogCritical("FLOOD_WAIT {Seconds}s — stopping sync", rateLimited.WaitSeconds);
+                        await Task.Delay(TimeSpan.FromSeconds(rateLimited.WaitSeconds + TelegramErrorAnalyzer.FloodWaitBufferSeconds), cancellationToken);
+                        return;
 
                     case JoinChannelInfo.AccessDenied:
                         _logger.LogWarning("Access denied to channel {Channel}", channelName);
