@@ -13,6 +13,7 @@ public sealed class OpenAiFilterClient
 {
     private readonly ChatClient _chatClient;
     private readonly ILogger<OpenAiFilterClient> _logger;
+    private const int MaxAttempts = 3;
 
     public OpenAiFilterClient(AzureOpenAIClient azureOpenAiClient, IOptions<FilteringSettings> options, ILogger<OpenAiFilterClient> logger)
     {
@@ -28,17 +29,31 @@ public sealed class OpenAiFilterClient
             new UserChatMessage(userPrompt)
         };
 
-        try
+        var attempt = 0;
+        while (attempt < MaxAttempts)
         {
-            var completion = await _chatClient.CompleteChatAsync(messages, cancellationToken: cancellationToken);
-            var content = completion.Value.Content[0].Text;
-            return Parse(content);
+            try
+            {
+                var completion = await _chatClient.CompleteChatAsync(messages, cancellationToken: cancellationToken);
+                var content = completion.Value.Content[0].Text;
+                return Parse(content);
+            }
+            catch (ClientResultException ex) when (ex.Status == 429)
+            {
+                attempt++;
+                var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt) * 10);
+                _logger.LogWarning("OpenAI rate limited, attempt {Attempt}/{Max}, waiting {Delay}s", attempt, MaxAttempts, delay.TotalSeconds);
+                await Task.Delay(delay, cancellationToken);
+            }
+            catch (ClientResultException ex) when (ex.Message.Contains("content_filter"))
+            {
+                _logger.LogWarning("Content filter triggered, defaulting to show. Prompt length: {Length}", userPrompt.Length);
+                return new FilterResult(true, "content-filter");
+            }
         }
-        catch (ClientResultException ex) when (ex.Message.Contains("content_filter"))
-        {
-            _logger.LogWarning("Content filter triggered, defaulting to show. Prompt length: {Length}", userPrompt.Length);
-            return new FilterResult(true, "content-filter");
-        }
+
+        _logger.LogWarning("OpenAI rate limit exceeded after {Max} attempts, defaulting to show", MaxAttempts);
+        return new FilterResult(true, "rate-limited");
     }
 
     private FilterResult Parse(string content)
