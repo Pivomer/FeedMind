@@ -116,6 +116,58 @@ public sealed class WTelegramClient : IAsyncDisposable
         }
     }
 
+    public async Task<ResolvedChannel?> ResolveChannel(string channelName)
+    {
+        var client = await _client.Value;
+        var resolved = await client.Contacts_ResolveUsername(channelName);
+        return resolved.Chat is Channel channel
+            ? new ResolvedChannel(new InputPeerChannel(channel.id, channel.access_hash))
+            : null;
+    }
+
+    public async Task<HashSet<long>> GetJoinedChannelIds()
+    {
+        var client = await _client.Value;
+        var dialogs = await client.Messages_GetDialogs();
+        if (dialogs is not Messages_Dialogs msgDialogs)
+        {
+            return [];
+        }
+
+        return msgDialogs.chats.Values.OfType<Channel>().Select(channel => channel.id).ToHashSet();
+    }
+
+    public async Task<int> GetLatestMessageId(InputPeerChannel peer)
+    {
+        var history = await GetHistorySince(peer, minMessageId: 0, limit: 1);
+        return history switch
+        {
+            HistoryFetchResult.Success success => success.Messages.Count == 0 ? 0 : success.Messages.Max(m => m.id),
+            _ => 0
+        };
+    }
+
+    public async Task<HistoryFetchResult> GetHistorySince(InputPeerChannel peer, int minMessageId, int limit)
+    {
+        try
+        {
+            var client = await _client.Value;
+            var history = await client.Messages_GetHistory(peer, min_id: minMessageId, limit: limit);
+            var messages = history.Messages.OfType<Message>().ToList();
+            return new HistoryFetchResult.Success(messages);
+        }
+        catch (RpcException exception) when (exception.Code == 420)
+        {
+            return new HistoryFetchResult.FloodWait(TelegramErrorAnalyzer.ParseFloodWaitSeconds(exception));
+        }
+        catch (RpcException exception)
+        {
+            _logger.LogWarning(exception, "Failed to fetch history for peer {PeerId}", peer.channel_id);
+            OnTransientError?.Invoke(new TelegramTransientError(exception));
+            return new HistoryFetchResult.TransientFailure();
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (_initializedClient is null)
@@ -234,6 +286,24 @@ public sealed class WTelegramClient : IAsyncDisposable
         catch (Exception exception)
         {
             _logger.LogError(exception, "Error in OnMessageReceived handler");
+        }
+    }
+
+    public async Task MarkChannelAsRead(InputPeerChannel peer)
+    {
+        try
+        {
+            var client = await _client.Value;
+            await client.Channels_ReadHistory(peer);
+        }
+        catch (RpcException exception)
+        {
+            _logger.LogWarning(exception, "Failed to mark channel {ChannelId} history as read", peer.channel_id);
+            OnTransientError?.Invoke(new TelegramTransientError(exception));
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(exception, "Failed to mark channel {ChannelId} history as read", peer.channel_id);
         }
     }
 
