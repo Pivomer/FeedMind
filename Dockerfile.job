@@ -1,0 +1,20 @@
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
+WORKDIR /app
+
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+COPY Directory.Build.props ./
+COPY src/. .
+
+RUN dotnet restore "Hosts/FeedMind.ChannelSyncJob/FeedMind.ChannelSyncJob.csproj"
+WORKDIR /src/Hosts/FeedMind.ChannelSyncJob
+RUN dotnet build "FeedMind.ChannelSyncJob.csproj" -c Release -o /app/build
+
+FROM build AS publish
+ARG BUILD_CONFIGURATION=Release
+RUN dotnet publish "./FeedMind.ChannelSyncJob.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+
+FROM base AS final
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "FeedMind.ChannelSyncJob.dll"]

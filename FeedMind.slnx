@@ -1,6 +1,7 @@
 <Solution>
     <Folder Name="/Hosts/">
         <Project Path="src\Hosts\FeedMind.API\FeedMind.API.csproj" />
+        <Project Path="src\Hosts\FeedMind.ChannelSyncJob\FeedMind.ChannelSyncJob.csproj" />
     </Folder>
     <Folder Name="/Modules/" />
     <Folder Name="/Modules/Filtering/">
