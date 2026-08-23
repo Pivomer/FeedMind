@@ -52,6 +52,7 @@ public sealed class TelegramRequestConsumerService : ServiceBusConsumerBase<Tele
 
             try
             {
+                await item.RenewLock(cancellationToken);
                 await _handler.Handle(payload, cancellationToken);
                 await item.Complete(cancellationToken);
                 RecordSuccess();

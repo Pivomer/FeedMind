@@ -104,6 +104,7 @@ public sealed class AiFilterResultsConsumerService : BackgroundService
 
             try
             {
+                await message.RenewLock(stoppingToken);
                 await _postDispatcher.Deliver(payload, stoppingToken);
                 await message.Complete(stoppingToken);
                 _health.RecordSuccess();

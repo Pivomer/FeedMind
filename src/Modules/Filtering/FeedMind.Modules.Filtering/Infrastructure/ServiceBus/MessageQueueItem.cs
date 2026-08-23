@@ -35,6 +35,8 @@ public sealed class MessageQueueItem<TMessage>
 
     public async Task Abandon(CancellationToken cancellationToken) => await _receiver.AbandonMessageAsync(_message, cancellationToken: cancellationToken);
 
+    public async Task RenewLock(CancellationToken cancellationToken) => await _receiver.RenewMessageLockAsync(_message, cancellationToken);
+
     public async Task DeadLetter(string reason, string? description = null, CancellationToken cancellationToken = default) => await _receiver.DeadLetterMessageAsync(_message, reason, description, cancellationToken);
 
     public ActivityContext GetTraceContext()
