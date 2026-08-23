@@ -8,6 +8,7 @@ public static class TableNames
     [
         SubscriptionRepository.TableName,
         UserRepository.TableName,
-        MessageRepository.TableName
+        MessageRepository.TableName,
+        ChannelCheckpointRepository.TableName
     ];
 }

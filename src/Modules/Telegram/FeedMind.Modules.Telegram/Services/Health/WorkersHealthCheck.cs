@@ -16,9 +16,7 @@ public sealed class WorkersHealthCheck : IHealthCheck
         var unhealthy = new Dictionary<string, object>();
         var degraded = new Dictionary<string, object>();
 
-        Check("feed-listener", _states.ChannelFeedListener);
         Check("bot-polling", _states.BotPolling);
-        Check("post-consumer", _states.PostConsumer);
 
         if (unhealthy.Count > 0)
         {
