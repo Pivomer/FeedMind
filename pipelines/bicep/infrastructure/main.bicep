@@ -7,6 +7,9 @@ param env infraScopes.envType
 @description('Optional. Cannot be var, should be known during compile time')
 param deploymentDate string = sys.utcNow('yyyy-MM-dd')
 
+@description('Cron formatted repeating schedule ("* * * * *") of a Cron Job.')
+param cronExpression string
+
 var location = resourceGroup().location
 var containerName = 'feedmind-api'
 var jobName = 'feedmind'
@@ -222,5 +225,19 @@ module containerApp './../modules/container-app/main.bicep' = {
     environmentVariables: environmentVariables
     userAssignedIdentityId: identity.id
     ingress: null
+  }
+}
+
+module containerAppJob './../modules/container-app-job/main.bicep' = {
+  name: 'containerAppJob-${jobName}-${env}'
+  params: {
+    name: jobName
+    env: env
+    tags: tags
+    containerAppsEnvironmentName: containerAppEnvironment.name
+    containerRegistryServer: containerRegistry.properties.loginServer
+    environmentVariables: environmentVariables
+    userAssignedIdentityId: identity.id
+    cronExpression: cronExpression
   }
 }
