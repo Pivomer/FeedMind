@@ -65,7 +65,7 @@ public sealed class BotApiClient
         return Task.CompletedTask;
     }
 
-    public async Task<Message> SendPostToChat(string chatId, TelegramPost postModel, bool shouldShow, string? reason, CancellationToken cancellationToken)
+    public async Task<Message> SendPostToChat(string chatId, TelegramPost postModel, string channelName, bool shouldShow, string? reason, CancellationToken cancellationToken)
     {
         try
         {
@@ -77,9 +77,13 @@ public sealed class BotApiClient
                 InlineKeyboardButton.WithCallbackData("👎", dislikeString)
             );
 
-            var formattedText = string.IsNullOrEmpty(reason)
+            var header = !shouldShow && !string.IsNullOrEmpty(reason)
+                ? $"🔴 AI: hide <i>{reason}</i>"
+                : channelName;
+
+            var formattedText = string.IsNullOrEmpty(header)
                 ? postModel.FormattedText
-                : $"{postModel.FormattedText}\n\n{(shouldShow ? "🤖" : "🔴 AI: hide")} <i>{reason}</i>";
+                : $"{header}\n\n{postModel.FormattedText}";
 
             var message = await _botClient.SendMessage(
                 chatId: chatId,

@@ -169,6 +169,19 @@ public sealed class SubscriptionRepository
         _logger.LogInformation("Channel {ChannelName} hard-removed from {Count} subscriptions", channelName, count);
     }
 
+    public async Task<string> GetChannelName(string chatId, long channelId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await _tableClient.GetEntityAsync<SubscriptionEntity>(chatId, channelId.ToString(), cancellationToken: cancellationToken);
+            return response.Value.ChannelName;
+        }
+        catch (RequestFailedException exception) when (exception.Status == 404)
+        {
+            return string.Empty;
+        }
+    }
+
     public async Task<HashSet<string>> GetActiveChatIdsByChannel(long channelId, CancellationToken cancellationToken)
     {
         var result = new HashSet<string>();
