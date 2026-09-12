@@ -69,7 +69,8 @@ public sealed class TelegramPostDispatcher
         try
         {
             var chatId = result.ChatId;
-            var message = await _botApiClient.SendPostToChat(chatId, post, result.ShouldShow, result.Reason, cancellationToken);
+            var channelName = await _subscriptions.GetChannelName(chatId, result.ChannelId, cancellationToken);
+            var message = await _botApiClient.SendPostToChat(chatId, post, channelName, result.ShouldShow, result.Reason, cancellationToken);
 
             await _messages.Save(
                 chatId: chatId,
